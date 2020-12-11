@@ -18,6 +18,7 @@ import logging
 import requests
 import json
 import sys
+from datetime import datetime
 from time import sleep
 from typing import cast
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
@@ -47,10 +48,10 @@ TRACEBACK_LIMIT = 3
 
 # Wiser Hub Rest Api URL Constants
 WISERHUBURL         = "http://{}/data/v2/"
-WISERHUBDOMAIN      = WISERHUBURL + "/domain/"
-WISERHUBNETWORK     = WISERHUBURL + "/network/"
-WISERHUBSCHEDULES   = WISERHUBURL + "/schedules/"
-WISERHUBSYSTEM      = WISERHUBDOMAIN + "System/"
+WISERHUBDOMAIN      = WISERHUBURL + "domain/"
+WISERHUBNETWORK     = WISERHUBURL + "network/"
+WISERHUBSCHEDULES   = WISERHUBURL + "schedules/"
+WISERSYSTEM         = "System"
 WISERHOTWATER       = "HotWater/{}"
 WISERROOM           = "Room/{}"
 WISERSMARTVALVE     = "SmartValve/{}"
@@ -412,6 +413,7 @@ class _wiserRestController:
         return: boolean
         """
         url = WISERHUBDOMAIN.format(_wiserApiConnection.wiserIP) + url
+        print(url)
         _LOGGER.debug("patchdata {} ".format(patchData))
         response = requests.patch(
             url=url,
@@ -550,7 +552,7 @@ class _wiserHub:
         return: boolen - true = success, false = failed
         """
         rest = _wiserRestController()
-        return rest._sendCommand(WISERHUBSYSTEM, cmd)
+        return rest._sendCommand(WISERSYSTEM, cmd)
 
     def setTime(self, unixTime: int):
         """
@@ -558,7 +560,7 @@ class _wiserHub:
         param unixTime: the unix time valeu to set
         return: boolen - true = success, false = failed
         """
-        raise WiserNotImplemented
+        return self._sendCommand({"UnixTime": datetime.utcnow().timestamp()})
 
     def setValveProtection(self, enabled: bool = False):
         """
@@ -590,7 +592,7 @@ class _wiserHub:
         param enabled: turn on or off
         return: boolean
         """
-        return self._sendCommand({"AwayModeAffectsHotWater": enabled})
+        return self._sendCommand({"AwayModeAffectsHotWater": str(enabled).lower()})
 
     def setAwayModeTargetTemperature(self, temp: float = DEFAULT_AWAY_MODE_TEMP):
         """
@@ -616,7 +618,7 @@ class _wiserHub:
         """
         return self._sendCommand({
             "RequestOverride":{
-                "type": 2 if enabled else 0
+                "Type": 2 if enabled else 0
                 }
             })
 
