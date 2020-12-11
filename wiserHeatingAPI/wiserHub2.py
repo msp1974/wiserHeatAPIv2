@@ -17,6 +17,7 @@ https://github.com/asantaga/wiserHomeAssistantPlatform
 import logging
 import requests
 import json
+from ruamel.yaml import YAML
 import sys
 from datetime import datetime
 from time import sleep
@@ -45,6 +46,23 @@ ROOMSTAT_FULL_BATTERY_LEVEL = 2.7
 REST_TIMEOUT = 15
 MDNS_TIMEOUT = 10
 TRACEBACK_LIMIT = 3
+
+# Text Values
+TEXT_ON = "On"
+TEXT_OFF = "Off"
+TEXT_WEEKDAYS = "Weekdays"
+TEXT_WEEKENDS = "Weekends"
+TEXT_HEATING = "Heating"
+TEXT_ONOFF = "OnOff"
+TEXT_TIME = "Time"
+TEXT_TEMP = "Temp"
+TEXT_DEGREESC = "DegreesC"
+TEXT_STATE = "State"
+
+
+WEEKDAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+WEEKENDS = ["Saturday","Sunday"]
+SPECIAL_DAYS = [TEXT_WEEKDAYS,TEXT_WEEKENDS]
 
 # Wiser Hub Rest Api URL Constants
 WISERHUBURL         = "http://{}/data/v2/"
@@ -108,18 +126,18 @@ class WiserNotImplemented(Error):
 
 class _wiserConnection:
     def __init(self):
-        self.wiserIP = None
-        self.wiserSecret = None
-        self.wiserHubName = None
+        self.host = None
+        self.secret = None
+        self.hubName = None
 
 _wiserApiConnection = _wiserConnection()
 
 class wiserAPI():
     """ Main api class to access all entities and attributes of wiser system """
     def __init__(self, hubIP: str, secret: str):
-        _wiserApiConnection.wiserIP = hubIP
-        _wiserApiConnection.wiserSecret = secret
-        _wiserApiConnection.wiserHubName = ""
+        _wiserApiConnection.host = hubIP
+        _wiserApiConnection.secret = secret
+        _wiserApiConnection.hubName = ""
         
         # Main data stores
         self.domainData = {}
@@ -142,15 +160,15 @@ class wiserAPI():
         )
 
         # Do hub discovery if null IP is passed when initialised
-        if _wiserApiConnection.wiserIP is None:
+        if _wiserApiConnection.host is None:
             wiserDiscover = _wiserDiscover()
             if wiserDiscover._discoverHub():
-                print("Hub: {}, IP: {}".format(_wiserApiConnection.wiserHubName, _wiserApiConnection.wiserIP))
+                print("Hub: {}, IP: {}".format(_wiserApiConnection.hubName, _wiserApiConnection.host))
             else:
                 print("No Wiser hub discovered on network")
 
         # Read hub data if hub IP and secret exist
-        if _wiserApiConnection.wiserIP is not None and _wiserApiConnection.wiserSecret is not None:
+        if _wiserApiConnection.host is not None and _wiserApiConnection.secret is not None:
             self.readHubData()  
             #TODO - Add validation function to check for no devices, rooms etc here.      
         else:
@@ -158,25 +176,12 @@ class wiserAPI():
 
     
     def readHubData(self):
-        """ Read all data from hub """
-        def _getDomainData(hubData):
-            url = WISERHUBDOMAIN.format(_wiserApiConnection.wiserIP)
-            return hubData._getHubData(url)
-
-        def _getNetworkData(hubData):
-            url = WISERHUBNETWORK.format(_wiserApiConnection.wiserIP)
-            return hubData._getHubData(url)
-
-        def _getScheduleData(hubData):
-            url = WISERHUBSCHEDULES.format(_wiserApiConnection.wiserIP)
-            return hubData._getHubData(url)
-    
-    
+        """ Read all data from hub and populate objects """
         # Read hub data endpoints
         hubData = _wiserRestController()
-        self.domainData = _getDomainData(hubData)
-        self.networkData = _getNetworkData(hubData)
-        self.scheduleData = _getScheduleData(hubData)
+        self.domainData = hubData._getHubData(WISERHUBDOMAIN)
+        self.networkData = hubData._getHubData(WISERHUBNETWORK)
+        self.scheduleData = hubData._getHubData(WISERHUBSCHEDULES)
         
         # Schedules
         self.schedules = []
@@ -364,7 +369,7 @@ class _wiserRestController:
         return: json object
         """
         return {
-            "SECRET": _wiserApiConnection.wiserSecret,
+            "SECRET": _wiserApiConnection.secret,
             "Content-Type": "application/json;charset=UTF-8",
         }
 
@@ -374,6 +379,7 @@ class _wiserRestController:
         param url: url of hub rest api endpoint
         return: json object
         """
+        url = url.format(_wiserApiConnection.host)
         try:
             resp = requests.get(
                 url,
@@ -405,15 +411,33 @@ class _wiserRestController:
         
         return resp.json()
 
-    def _sendCommand(self, url: str, patchData: dict):
+    def _sendCommand(self, url: str, commandData: dict):
         """
         Send control command to hub and raise errors if fails
         param url: url of hub rest api endpoint
         param patchData: json object containing command and values to set
         return: boolean
         """
-        url = WISERHUBDOMAIN.format(_wiserApiConnection.wiserIP) + url
-        print(url)
+        url = WISERHUBDOMAIN.format(_wiserApiConnection.host) + url
+        return self._patchData(url, commandData)
+
+    def _sendSchedule(self, url: str, scheduleData: dict):
+        """
+        Send schedule to hub and raise errors if fails
+        param url: url of hub rest api endpoint
+        param patchData: json object containing command and values to set
+        return: boolean
+        """
+        url = url.format(_wiserApiConnection.host)
+        return self._patchData(url, scheduleData)
+
+    def _patchData(self, url: str, patchData: dict):
+        """
+        Send patch update to hub and raise errors if fails
+        param url: url of hub rest api endpoint
+        param patchData: json object containing command and values to set
+        return: boolean
+        """
         _LOGGER.debug("patchdata {} ".format(patchData))
         response = requests.patch(
             url=url,
@@ -451,8 +475,8 @@ class _wiserDiscover:
                 info = zeroconf.get_service_info(service_type, name)
                 if info:
                     addresses = ["%s:%d" % (addr, cast(int, info.port)) for addr in info.parsed_addresses()]
-                    _wiserApiConnection.wiserIP = addresses[0].replace(":80","")
-                    _wiserApiConnection.wiserHubName = info.server.replace(".local.","")
+                    _wiserApiConnection.host = addresses[0].replace(":80","")
+                    _wiserApiConnection.hubName = info.server.replace(".local.","")
 
     def _discoverHub(self):
         """
@@ -465,12 +489,12 @@ class _wiserDiscover:
         services = ["_http._tcp.local."]
         ServiceBrowser(zeroconf, services, handlers=[self._zeroconf_on_service_state_change])
 
-        while _wiserApiConnection.wiserIP is None and timeout < MDNS_TIMEOUT * 10:
+        while _wiserApiConnection.host is None and timeout < MDNS_TIMEOUT * 10:
             sleep(0.1)
             timeout += 1
         zeroconf.close()
 
-        if _wiserApiConnection.wiserIP is not None:
+        if _wiserApiConnection.host is not None:
             return True
         return False
 
@@ -484,9 +508,155 @@ class _wiserSchedule:
         self.id = scheduleData.get("id")
         self.name = scheduleData.get("Name")
         self.next = scheduleData.get("Next")
-        self.currentTargetTemperature = _fromWiserTemp(scheduleData.get("CurrentSetPoint", TEMP_OFF))
-        self.currentState = scheduleData.get("CurrentState")
-        self.scheduleData = scheduleData
+        self.currentTargetTemperature = _fromWiserTemp(scheduleData.get("CurrentSetPoint"))
+        self.currentState = scheduleData.get("CurrentState", "Unknown")
+        self.scheduleData = self._remove_schedule_elements(scheduleData)
+
+    def _remove_schedule_elements(self, scheduleData: dict):
+        removeList = ["id","Next","CurrentSetpoint","CurrentState"]
+        for item in removeList:
+            if item in scheduleData:
+                del scheduleData[item]
+        return scheduleData
+
+    def _convert_from_wiser_schedule(self, scheduleData: dict):
+        """
+        Convert from wiser format to format suitable for yaml output
+        param: scheduleData
+        param: mode
+        """
+        # Create dict to take converted data
+        schedule_output = {
+            "Name": self.name,
+            "Description": self.type + " schedule for " + self.name,
+            "Type": self.type,
+        }
+        # Iterate through each day
+        for day, sched in scheduleData.items():
+            if day.title() in (WEEKDAYS + WEEKENDS + SPECIAL_DAYS):
+                schedule_set_points = self._convert_wiser_to_yaml_day(sched, self.type)
+                schedule_output.update({day.capitalize(): schedule_set_points})
+
+        return schedule_output
+
+    def _convert_to_wiser_schedule(self, scheduleYamlData: dict):
+        """
+        Convert from wiser format to format suitable for yaml output
+        param: scheduleData
+        param: mode
+        """
+        schedule_output = {}
+        for day, sched in scheduleYamlData.items():
+            if day.title() in (WEEKDAYS + WEEKENDS + SPECIAL_DAYS):
+                schedule_day = self._convert_yaml_to_wiser_day(sched, self.type)
+                # If using special days, convert to one entry for each day of week
+                if day.title() in SPECIAL_DAYS:
+                    if day.title() == TEXT_WEEKDAYS:
+                        for weekday in WEEKDAYS:
+                            schedule_output.update({weekday: schedule_day})
+                    if day.lower() == TEXT_WEEKENDS:
+                        for weekend_day in WEEKENDS:
+                            schedule_output.update({weekend_day: schedule_day})
+                else:
+                    schedule_output.update({day: schedule_day})
+        return schedule_output
+
+    def _convert_wiser_to_yaml_day(self, daySchedule, scheduleType):
+        """
+        Convert from wiser schedule format to format for yaml output.
+        param daySchedule: json schedule for a day in wiser v2 format
+        param scheduleType: Heating or OnOff
+        return: json
+        """
+        schedule_set_points = []
+        if scheduleType == TEXT_HEATING:
+            for i in range(len(daySchedule[TEXT_TIME])):
+                schedule_set_points.append({
+                    TEXT_TIME:
+                    (datetime.strptime(format(daySchedule[TEXT_TIME][i], "04d"), "%H%M")).strftime("%H:%M"),
+                    TEXT_TEMP:
+                    _fromWiserTemp(daySchedule[TEXT_DEGREESC][i])
+                })
+        else:
+            for i in range(len(daySchedule)):
+                schedule_set_points.append({
+                    TEXT_TIME:
+                    (datetime.strptime(format(abs(daySchedule[i]), "04d"), "%H%M")).strftime("%H:%M"),
+                    TEXT_STATE:
+                    TEXT_ON if daySchedule[i] > 0 else TEXT_OFF
+                })
+        return schedule_set_points
+
+    def _convert_yaml_to_wiser_day(self, daySchedule, scheduleType):
+        """
+        Convert from yaml format to wiser v2 schedule format.
+        param daySchedule: json schedule for a day in yaml format
+        param scheduleType: Heating or OnOff
+        return: json
+        """
+        times = []
+        temps = []
+        
+        if scheduleType == TEXT_HEATING:
+            for item in daySchedule:
+                for key, value in item.items():
+                    if key.title() == TEXT_TIME:
+                        time = str(value).replace(":", "")
+                        times.append(time)
+                    if key.title() == TEXT_TEMP:
+                        temp = _toWiserTemp(_validateTemperature(value if str(value).title() != TEXT_OFF else TEMP_OFF))
+                        temps.append(temp)
+            return {
+                TEXT_TIME: times,
+                TEXT_DEGREESC: temps
+            }
+        else:
+            for time, state in daySchedule:
+                try:
+                    time = int(str(time).replace(":", ""))
+                    if state.title() == TEXT_OFF:
+                        time = 0 - int(time)
+                except:
+                    time = 0
+                times.append(time)
+            return times
+
+    def _sendSchedule(self, scheduleData: dict) -> bool:
+        """
+        Send system control command to Wiser Hub
+        param cmd: json command structure
+        return: boolen - true = success, false = failed
+        """
+        rest = _wiserRestController()
+        return rest._sendSchedule(WISERHUBSCHEDULES + "/{}/{}".format(self.type, self.id), scheduleData)
+
+    def saveScheduleToFile(self, scheduleFile: str):
+        """
+        Save this schedule to a file as json.
+        param scheduleFile: file to write schedule to
+        return: boolen - true = successfully saved, false = failed to save
+        """
+        try:
+            with open(scheduleFile, 'w') as file:
+                json.dump(self.scheduleData, file)
+            return True
+        except:
+            return False
+
+    def saveScheduleToFileYaml(self, scheduleFile: str):
+        """
+        Save this schedule to a file as yaml.
+        param scheduleFile: file to write schedule to
+        return: boolen - true = successfully saved, false = failed to save
+        """
+        try:
+            yaml = YAML(typ='safe', pure=True)
+            with open(scheduleFile, 'w') as file:
+                yaml.dump(self._convert_from_wiser_schedule(self.scheduleData), file)
+            return True
+        except:
+            return False
+
 
     def setSchedule(self, scheduleData: dict):
         """
@@ -494,7 +664,37 @@ class _wiserSchedule:
         param scheduleData: json data respresenting a schedule
         return: boolen - true = successfully set, false = failed to set
         """
-        raise WiserNotImplemented
+        self._sendSchedule(scheduleData)
+
+    def setScheduleFromFile(self, scheduleFile: str):
+        """
+        Set schedule from file.
+        param scheduleFile: file of json data respresenting a schedule
+        return: boolen - true = successfully set, false = failed to set
+        """
+        try:
+            with open(scheduleFile, 'r') as file:
+                self.setSchedule(json.load(file))
+                return True
+        except:
+            return False
+
+    def setScheduleFromYamlFile(self, scheduleFile: str):
+        """
+        Set schedule from file.
+        param scheduleFile: file of yaml data respresenting a schedule
+        return: boolen - true = successfully set, false = failed to set
+        """
+        try:
+            yaml = YAML(typ='safe', pure=True)
+            with open(scheduleFile, 'r') as file:
+                y = yaml.load(file)
+                self.setSchedule(self._convert_to_wiser_schedule(y))
+                return True
+        except:
+            raise
+            return False
+
 
     def copySchedule(self, toId: int):
         """
@@ -1137,5 +1337,6 @@ def _fromWiserTemp(temp: int):
     param temp: The wiser temperature to convert
     return: Float
     """
-    temp = round(temp / 10, 1)
+    if temp is not None:
+        temp = round(temp / 10, 1)
     return temp
