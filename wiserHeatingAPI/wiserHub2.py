@@ -56,7 +56,6 @@ WISERROOM           = "Room/{}"
 WISERSMARTVALVE     = "SmartValve/{}"
 WISERROOMSTAT       = "RoomStat/{}"
 WISERSMARTPLUG      = "SmartPlug/{}"
-WISERAWAYMODEURL    = "System/RequestOverride"
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -553,15 +552,6 @@ class _wiserHub:
         rest = _wiserRestController()
         return rest._sendCommand(WISERHUBSYSTEM, cmd)
 
-    def _sendAwayModeCommand(self, cmd: dict):
-        """
-        Send away mode command to Wiser Hub
-        param cmd: json command structure
-        return: boolen - true = success, false = failed
-        """
-        rest = _wiserRestController()
-        return rest._sendCommand(WISERAWAYMODEURL, cmd)
-
     def setTime(self, unixTime: int):
         """
         Set the time on the wiser hub
@@ -624,7 +614,11 @@ class _wiserHub:
         param enabled: turn on or off
         return: boolean
         """
-        return self._sendAwayModeCommand({"type": 2 if enabled else 0})
+        return self._sendCommand({
+            "RequestOverride":{
+                "type": 2 if enabled else 0
+                }
+            })
 
 
 class _wiserSmartValve(_wiserDevice):
