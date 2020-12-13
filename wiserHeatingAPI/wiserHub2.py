@@ -135,10 +135,10 @@ _wiserApiConnection = _wiserConnection()
 
 class wiserAPI():
     """ Main api class to access all entities and attributes of wiser system """
-    def __init__(self, hubIP: str, secret: str):
-        _wiserApiConnection.host = hubIP
-        _wiserApiConnection.secret = secret
-        _wiserApiConnection.hubName = ""
+    def __init__(self, host: str, secret: str):
+        self.host = host
+        self.secret = secret
+        #self.hubName = ""
         
         # Main data stores
         self.domainData = {}
@@ -160,13 +160,22 @@ class wiserAPI():
             "WiserHub API Initialised : Version {}".format(__VERSION__)
         )
 
+        # Set hub secret to global object
+        _wiserApiConnection.secret = self.secret
+
         # Do hub discovery if null IP is passed when initialised
-        if _wiserApiConnection.host is None:
-            wiserDiscover = _wiserDiscover()
-            if wiserDiscover._discoverHub():
+        if self.host is None:
+            wiserDiscover = wiserDiscovery()
+            hub = wiserDiscover.discoverHub()
+            if len(hub) > 0:
+                _wiserApiConnection.hubName = hub[0]["name"]
+                _wiserApiConnection.host = hub[0]["hostname"]
+
                 print("Hub: {}, IP: {}".format(_wiserApiConnection.hubName, _wiserApiConnection.host))
             else:
                 print("No Wiser hub discovered on network")
+        else:
+            _wiserApiConnection.host = self.host
 
         # Read hub data if hub IP and secret exist
         if _wiserApiConnection.host is not None and _wiserApiConnection.secret is not None:
@@ -175,7 +184,6 @@ class wiserAPI():
         else:
             print("No connection info")
 
-    
     def readHubData(self):
         """ Read all data from hub and populate objects """
         # Read hub data endpoints
@@ -186,7 +194,7 @@ class wiserAPI():
         
         # Schedules
         self.schedules = []
-        for scheduleType in ["Heating","OnOff"]:
+        for scheduleType in self.scheduleData:
             for schedule in self.scheduleData.get(scheduleType):
                 self.schedules.append(
                     _wiserSchedule(scheduleType, schedule)
@@ -198,71 +206,75 @@ class wiserAPI():
         self.smartValves = []
         self.roomStats = []
         self.smartPlugs = []
-        for device in self.domainData.get("Device"):
-            # Add to generic device list
-            self.devices.append(_wiserDevice(device))
+        if self.domainData.get("Device"):
+            for device in self.domainData.get("Device"):
+                # Add to generic device list
+                self.devices.append(_wiserDevice(device))
 
-            # Add device to specific device type
-            if (device.get("ProductType") == "Controller"):
-                self.hub = _wiserHub(
-                    self.domainData.get("System"),
-                    device,
-                    self.networkData,
-                    self.domainData.get("Cloud")
-                )
-            if (device.get("ProductType") == "iTRV"):
-                # Get smartValve info
-                smartValveInfo = [smartValve for smartValve in self.domainData.get("SmartValve") if smartValve.get("id") == device.get("id")]
-                # Add entity
-                self.smartValves.append(
-                    _wiserSmartValve(
+                # Add device to specific device type
+                if (device.get("ProductType") == "Controller"):
+                    self.hub = _wiserHub(
+                        self.domainData.get("System"),
                         device,
-                        smartValveInfo[0]
+                        self.networkData,
+                        self.domainData.get("Cloud")
                     )
-                )
-            elif (device.get("ProductType") == "RoomStat"):
-                # Get roomStat info
-                roomStatInfo = [roomStat for roomStat in self.domainData.get("RoomStat") if roomStat.get("id") == device.get("id")]
-                # Add entity
-                self.roomStats.append(
-                    _wiserRoomStat(
-                        device,
-                        roomStatInfo[0]
+                if (device.get("ProductType") == "iTRV"):
+                    # Get smartValve info
+                    smartValveInfo = [smartValve for smartValve in self.domainData.get("SmartValve") if smartValve.get("id") == device.get("id")]
+                    # Add entity
+                    self.smartValves.append(
+                        _wiserSmartValve(
+                            device,
+                            smartValveInfo[0]
+                        )
                     )
-                )
-            elif (device.get("ProductType") == "SmartPlug"):
-                # Get smartPlug info
-                smartPlugInfo = [smartPlug for smartPlug in self.domainData.get("SmartPlug") if smartPlug.get("id") == device.get("id")]
-                #Get schedule
-                smartPlugSchedule = [schedule for schedule in self.schedules if schedule.id == smartPlugInfo[0].get("ScheduleId")]
-                #Add entity
-                self.smartPlugs.append(
-                    _wiserSmartPlug(
-                        device,
-                        smartPlugInfo[0],
-                        smartPlugSchedule[0]
+                elif (device.get("ProductType") == "RoomStat"):
+                    # Get roomStat info
+                    roomStatInfo = [roomStat for roomStat in self.domainData.get("RoomStat") if roomStat.get("id") == device.get("id")]
+                    # Add entity
+                    self.roomStats.append(
+                        _wiserRoomStat(
+                            device,
+                            roomStatInfo[0]
+                        )
                     )
-                )
+                elif (device.get("ProductType") == "SmartPlug"):
+                    # Get smartPlug info
+                    smartPlugInfo = [smartPlug for smartPlug in self.domainData.get("SmartPlug") if smartPlug.get("id") == device.get("id")]
+                    #Get schedule
+                    smartPlugSchedule = [schedule for schedule in self.schedules if schedule.id == smartPlugInfo[0].get("ScheduleId")]
+                    #Add entity
+                    self.smartPlugs.append(
+                        _wiserSmartPlug(
+                            device,
+                            smartPlugInfo[0],
+                            smartPlugSchedule[0]
+                        )
+                    )
 
         # Rooms
-        self.rooms = [
-            _wiserRoom(
-                room, 
-                self.getScheduleById(room.get("ScheduleId")),
-                [device for device in self.devices if (device.id in room.get("SmartValveIds",["0"]) or device.id == room.get("RoomStatId","0"))]
-            ) for room in self.domainData.get("Room")
-        ]
+        if self.domainData.get("Room"):
+            self.rooms = [
+                _wiserRoom(
+                    room, 
+                    self.getScheduleById(room.get("ScheduleId")),
+                    [device for device in self.devices if (device.id in room.get("SmartValveIds",["0"]) or device.id == room.get("RoomStatId","0"))]
+                ) for room in self.domainData.get("Room")
+            ]
 
         # Hot Water
-        self.hotwater = _wiserHotwater(
-            self.domainData.get("Hotwater",{}),
-            self.getScheduleById(self.domainData.get("Hotwater",{}).get("ScheduleId",0)),
-        )
+        if self.domainData.get("HotWater"):
+            self.hotwater = _wiserHotwater(
+                self.domainData.get("HotWater",{})[0],
+                self.getScheduleById(self.domainData.get("HotWater",{})[0].get("ScheduleId",0)),
+            )
 
         # Heating
-        self.heating = _wiserHeating(
-            self.domainData.get("HeatingChannel",[])
-        )
+        if self.domainData.get("HeatingChannel"):
+            self.heating = _wiserHeating(
+                self.domainData.get("HeatingChannel",[])
+            )
 
     """
     Find entities by id or name
@@ -462,8 +474,11 @@ class _wiserRestController:
             return True
 
 
-class _wiserDiscover:
+class wiserDiscovery:
     """ Class to handle mDns discovery of a wiser hub on local network """
+    def __init__(self):
+        self.discoveredHubs = []
+
     def _zeroconf_on_service_state_change(
         self, zeroconf: Zeroconf, service_type: str, name: str, state_change: ServiceStateChange
     ) -> None:
@@ -476,10 +491,14 @@ class _wiserDiscover:
                 info = zeroconf.get_service_info(service_type, name)
                 if info:
                     addresses = ["%s:%d" % (addr, cast(int, info.port)) for addr in info.parsed_addresses()]
-                    _wiserApiConnection.host = addresses[0].replace(":80","")
-                    _wiserApiConnection.hubName = info.server.replace(".local.","")
+                    hub = {
+                        "ip": addresses[0].replace(":80",""),
+                        "name": info.server.replace(".local.",""),
+                        "hostname": info.server.replace(".local.",".local").lower()
+                    }
+                    self.discoveredHubs.append(hub)
 
-    def _discoverHub(self):
+    def discoverHub(self):
         """
         Call zeroconf service browser until hub found or timeout
         return: boolean - true = hub found, false = hub not found
@@ -490,14 +509,12 @@ class _wiserDiscover:
         services = ["_http._tcp.local."]
         ServiceBrowser(zeroconf, services, handlers=[self._zeroconf_on_service_state_change])
 
-        while _wiserApiConnection.host is None and timeout < MDNS_TIMEOUT * 10:
+        while len(self.discoveredHubs) < 1 and timeout < MDNS_TIMEOUT * 10:
             sleep(0.1)
             timeout += 1
-        zeroconf.close()
 
-        if _wiserApiConnection.host is not None:
-            return True
-        return False
+        zeroconf.close()
+        return self.discoveredHubs
 
 
 class _wiserDevice:
@@ -522,7 +539,7 @@ class _wiserSchedule:
         self.id = scheduleData.get("id")
         self.name = scheduleData.get("Name")
         self.next = scheduleData.get("Next")
-        self.currentTargetTemperature = _fromWiserTemp(scheduleData.get("CurrentSetPoint"))
+        self.currentTargetTemperature = _fromWiserTemp(scheduleData.get("CurrentSetpoint"))
         self.currentState = scheduleData.get("CurrentState", "Unknown")
         self.scheduleData = self._remove_schedule_elements(scheduleData)
 
@@ -670,13 +687,12 @@ class _wiserSchedule:
         return: boolen - true = successfully saved, false = failed to save
         """
         try:
-            yaml = YAML(typ='safe', pure=True)
+            yaml = YAML()
             with open(scheduleFile, 'w') as file:
                 yaml.dump(self._convert_from_wiser_schedule(self.scheduleData), file)
             return True
         except:
             return False
-
 
     def setSchedule(self, scheduleData: dict):
         """
@@ -684,7 +700,7 @@ class _wiserSchedule:
         param scheduleData: json data respresenting a schedule
         return: boolen - true = successfully set, false = failed to set
         """
-        self._sendSchedule(scheduleData)
+        return self._sendSchedule(scheduleData)
 
     def setScheduleFromFile(self, scheduleFile: str):
         """
@@ -714,7 +730,6 @@ class _wiserSchedule:
         except:
             return False
 
-
     def copySchedule(self, toId: int):
         """
         Copy this schedule to another schedule
@@ -730,7 +745,7 @@ class _wiserHub:
         self.activeFirmware = data.get("ActiveSystemVersion")
         self.automaticDaylightSaving = data.get("AutomaticDaylightSaving")
         self.awayModeAffectsHotWater = data.get("AwayModeAffectsHotWater", False)
-        self.awayModeTargetTemperature = data.get("AwayModeSetPointLimit", 0)
+        self.awayModeTargetTemperature = _fromWiserTemp(data.get("AwayModeSetPointLimit", 0))
         self.boilerFuelType = data.get("BoilerSettings", {"FuelType":"Unknown"}).get("FuelType")
         self.brandName = data.get("BrandName")
         self.cloud = _wiserCloud(data.get("CloudConnectionStatus"), cloudData)
@@ -759,12 +774,12 @@ class _wiserHub:
         rest = _wiserRestController()
         return rest._sendCommand(WISERSYSTEM, cmd)
 
-    def setTime(self):
+    def setTime(self, utcTime: int):
         """
         Set the time on the wiser hub to current system time
         return: boolen - true = success, false = failed
         """
-        return self._sendCommand({"UnixTime": datetime.utcnow().timestamp()})
+        return self._sendCommand({"UnixTime": utcTime})
 
     def setValveProtection(self, enabled: bool = False):
         """
@@ -963,6 +978,7 @@ class _wiserRoom:
     """ Class representing a Wiser Room entity """
     def __init__(self, data: dict, schedule: _wiserSchedule, devices: _wiserDevice):
         self.boostEndTime = 0
+        self.boostTimeRemaining = 0
         self.currentTargetTemperature = _fromWiserTemp(data.get("CurrentSetPoint", TEMP_MINIMUM))
         self.currentTemperature = _fromWiserTemp(data.get("CalculatedTemperature", TEMP_MINIMUM))
         self.devices = devices
@@ -1041,13 +1057,6 @@ class _wiserRoom:
         #TODO - cancel boost if boosted.  Need to check self.isBoosted
         return self.cancelOverride()
 
-    def getBoostTimeRemaining(self):
-        """
-        Get reminaing minutes of boost for the room
-        return: int
-        """
-        raise WiserNotImplemented
-
     def setTemperature(self, temp: float):
         """
         Set the temperature of the room to override current schedule temp or in manual mode
@@ -1115,18 +1124,19 @@ class _wiserHeating:
     """ Class representing a Wiser Heating Channel """
     #TODO - Do we need this???
     def __init__(self, data: dict):
-        print("heating initiated")
+        return None
 
 
 class _wiserHotwater:
     """ Class representing a Wiser Hot Water controller """
     def __init__(self, data: dict, schedule: dict):
+        self.currentControlSource = data.get("HotWaterDescription", "Unknown")
         self.id = data.get("id")
+        self.ignoreAwayMode = data.get("AwayModeSuppressed","Unkown")
         self.isHeating = True if data.get("WaterHeatingState") == "On" else False
         self.isBoosted = True if data.get("Override") else False
         self.mode = data.get("Mode")
         self.schedule = schedule
-        #TODO: Add rest here
 
     def _sendCommand(self, cmd: dict):
         """
@@ -1138,10 +1148,28 @@ class _wiserHotwater:
         return rest._sendCommand(WISERHOTWATER.format(self.id), cmd)
 
     def turnOn(self):
-        raise WiserNotImplemented
+        """
+        Turn on hotwater.  In auto this is until next schedule event.  In manual modethis is on until changed.
+        return: boolean
+        """
+        return self._sendCommand({
+            "RequestOverride": {
+                "Type": "Manual",
+                "SetPoint": _toWiserTemp(HW_ON)
+            }
+        })
 
     def turnOff(self):
-        raise WiserNotImplemented
+        """
+        Turn off hotwater.  In auto this is until next schedule event.  In manual modethis is on until changed.
+        return: boolean
+        """
+        return self._sendCommand({
+            "RequestOverride": {
+                "Type": "Manual",
+                "SetPoint": _toWiserTemp(HW_OFF)
+            }
+        })
 
     def setModeAuto(self):
         """
@@ -1199,9 +1227,6 @@ class _wiserHotwater:
                 "Type": "None"
             }
         })
-
-    def setSchedule(self, scheduleData: dict):
-        return WiserNotImplemented
 
 
 """
