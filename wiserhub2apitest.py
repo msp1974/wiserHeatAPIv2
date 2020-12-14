@@ -2,7 +2,7 @@ from wiserHeatingAPI import wiserHub2
 from datetime import datetime
 import logging
 
-USE_DISCOVERY = True
+USE_DISCOVERY = False
 
 
 TEST_HUB = False
@@ -381,6 +381,26 @@ try:
             printl("Set off override for 30 mins", hw.setOverrideOff(30))
             printl("Cancel overrides", hw.cancelOverride())
 
+            success("Hot water data and controls testing successful")
+
+    # ----------------------------------
+    # Heating Channel
+    # ----------------------------------
+    if TEST_HEATING:
+        testStart("Heating channel data")
+        if len(wh.heating) < 1 is None:
+            fail("No heating device found on hub")
+        else:
+            for hc in wh.heating:
+                printl("Heating channel id", hc.id)
+                printl("Heating channel name", hc.name)
+                printl("Heating channel room ids", hc.rooms)
+                printl("Percentage demand", hc.percentageDemand)
+                printl("Demand on/off output", hc.demandOnOffOutput)
+                printl("Heating relay state", hc.heatingRelayState)
+                printl("Is smart valve preventing demand?", hc.isSmartValvePreventingDemand)
+
+            success("Hot water data and controls testing successful")
 
 except wiserHub2.WiserHubAuthenticationException:
     fail("Error authenticating with wiser hub.  Check secret key!")
