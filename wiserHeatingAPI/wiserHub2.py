@@ -155,7 +155,7 @@ class wiserAPI():
         self.roomStats = []
         self.rooms = []
         self.hotwater = None
-        self.heating = None
+        self.heating = []
         
         _LOGGER.info(
             "WiserHub API Initialised : Version {}".format(__VERSION__)
@@ -255,6 +255,7 @@ class wiserAPI():
                     )
 
         # Rooms
+        self.rooms = []
         if self.domainData.get("Room"):
             self.rooms = [
                 _wiserRoom(
@@ -265,6 +266,7 @@ class wiserAPI():
             ]
 
         # Hot Water
+        self.hotwater = None
         if self.domainData.get("HotWater"):
             self.hotwater = _wiserHotwater(
                 self.domainData.get("HotWater",{})[0],
@@ -272,10 +274,10 @@ class wiserAPI():
             )
 
         # Heating
+        self.heating = []
         if self.domainData.get("HeatingChannel"):
-            self.heating = _wiserHeating(
-                self.domainData.get("HeatingChannel",[])
-            )
+            for heatChannel in self.domainData.get("HeatingChannel",[]):
+                self.heating.append(_wiserHeating(heatChannel))
 
     """
     Find entities by id or name
@@ -1123,9 +1125,15 @@ class _wiserRoom:
 
 class _wiserHeating:
     """ Class representing a Wiser Heating Channel """
-    #TODO - Do we need this???
     def __init__(self, data: dict):
-        return None
+        self.id = data.get("id")
+        self.name = data.get("Name","Unknown")
+        self.rooms = data.get("RoomIds",[])
+        self.percentageDemand = data.get("PercentageDemand",0)
+        self.demandOnOffOutput = data.get("DemandOnOffOutput","Unknown")
+        self.heatingRelayState = data.get("HeatingRelayState", "Unknown")
+        self.isSmartValvePreventingDemand = data.get("IsSmartValvePreventingDemand", False)
+
 
 
 class _wiserHotwater:
@@ -1135,7 +1143,7 @@ class _wiserHotwater:
         self.id = data.get("id")
         self.ignoreAwayMode = data.get("AwayModeSuppressed","Unkown")
         self.isHeating = True if data.get("WaterHeatingState") == "On" else False
-        self.isBoosted = True if data.get("Override") else False
+        self.isBoosted = True if data.get("Override") else False        #TODO: Check this
         self.mode = data.get("Mode")
         self.schedule = schedule
 
