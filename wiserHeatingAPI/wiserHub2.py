@@ -44,7 +44,8 @@ TRV_FULL_BATTERY_LEVEL = 3.0
 TRV_MIN_BATTERY_LEVEL = 2.5
 
 # Other Constants
-MDNS_TIMEOUT = 10
+MIN_DISCOVERY_TIME = 2
+MAX_DISCOVERY_TIME = 10
 REST_TIMEOUT = 15
 TRACEBACK_LIMIT = 3
 
@@ -509,7 +510,7 @@ class wiserDiscovery:
         services = ["_http._tcp.local."]
         ServiceBrowser(zeroconf, services, handlers=[self._zeroconf_on_service_state_change])
 
-        while len(self.discoveredHubs) < 1 and timeout < MDNS_TIMEOUT * 10:
+        while (len(self.discoveredHubs) < 1 or timeout < MIN_DISCOVERY_TIME * 10) and timeout < MAX_DISCOVERY_TIME * 10:
             sleep(0.1)
             timeout += 1
 
@@ -757,6 +758,7 @@ class _wiserHub:
         self.heatingButtonOverrideState = data.get("HeatingButtonOverrideState")
         self.hotWaterButtonOverrideState = data.get("HotWaterButtonOverrideState")
         self.hubTime = data.get("LocalDateAndTime")
+        self.name = networkData.get("Station", {"MdnsHostname":"WiserHeatxxxxxx"}).get("MdnsHostname")
         self.network = _wiserNetwork(networkData.get("Station", {}))
         self.openThermConnectionStatus = data.get("OpenThermConnectionStatus", "Disconnected")
         self.pairingStatus = data.get("PairingStatus")
@@ -848,7 +850,6 @@ class _wiserSmartValve(_wiserDevice):
         self.deviceLockEnabled = data.get("DeviceLockEnabled", False)
         self.mountingOrientation = deviceTypeData.get("MountingOrientation")
         self.percentageDemand = deviceTypeData.get("PercentageDemand")
-        self.windowState = deviceTypeData.get("WindowState")
 
     def _sendCommand(self, cmd: dict):
         """
@@ -962,7 +963,7 @@ class _wiserSmartPlug(_wiserDevice):
         """
         return self._sendCommand({"RequestOutput": "Off"})
 
-    def setAwayActionToOff(self, enable: bool = True):
+    def setAwayActionToOff(self, enable: bool = False):
         """
         Set the away mode action of the smart plug
         param enable: true = turn off when away mode set, false = keep current state
