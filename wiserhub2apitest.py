@@ -10,6 +10,7 @@ TEST_ROOMS = False
 TEST_SCHEDULES = False
 TEST_DEVICES = False
 TEST_HOTWATER = True
+TEST_HEATING = True
 
 class bcolors:
     HEADER = "\033[95m"
