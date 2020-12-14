@@ -389,7 +389,7 @@ try:
     # ----------------------------------
     if TEST_HEATING:
         testStart("Heating channel data")
-        if len(wh.heating) < 1 is None:
+        if len(wh.heating) < 1:
             fail("No heating device found on hub")
         else:
             for hc in wh.heating:
@@ -401,7 +401,7 @@ try:
                 printl("Heating relay state", hc.heatingRelayState)
                 printl("Is smart valve preventing demand?", hc.isSmartValvePreventingDemand)
 
-            success("Hot water data and controls testing successful")
+            success("Heating channel data testing successful")
 
 except wiserHub2.WiserHubAuthenticationException:
     fail("Error authenticating with wiser hub.  Check secret key!")
