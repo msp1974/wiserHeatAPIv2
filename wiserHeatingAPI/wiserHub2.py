@@ -1627,7 +1627,7 @@ class _WiserRoom(object):
         return: boolean
         """
         if self.is_boosted:
-            return self.cancel_override()
+            return self.cancel_overrides()
         else:
             return False
 
@@ -2024,7 +2024,7 @@ class _WiserBattery:
 
     @property
     def voltage(self) -> float:
-    """ Get the battery voltage """
+        """ Get the battery voltage """
         return self._data.get("BatteryVoltage", 0) / 10
 
 
