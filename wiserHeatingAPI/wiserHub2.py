@@ -32,6 +32,7 @@ from typing import cast
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
 
 __VERSION__ = "2.0.0"
+_LOGGER = logging.getLogger(__name__)
 
 # Set traceback limit
 TRACEBACK_LIMIT = 3
@@ -167,7 +168,6 @@ class _WiserConnection:
 
 
 # Global variables
-_LOGGER = logging.getLogger(__name__)
 _wiser_api_connection = _WiserConnection()
 
 
