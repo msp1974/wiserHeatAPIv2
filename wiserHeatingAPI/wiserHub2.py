@@ -31,6 +31,7 @@ from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
 __VERSION__ = "2.0.0"
 _LOGGER = logging.getLogger(__name__)
 
+# TODO: Remove this in production!!!!
 # Set traceback limit
 TRACEBACK_LIMIT = 3
 sys.tracebacklimit = TRACEBACK_LIMIT
@@ -1251,6 +1252,34 @@ class _WiserHub(object):
         """
         if self._sendCommand({"ValveProtectionEnabled": enabled}):
             self._valve_protection_enabled = enabled
+
+    def boost_all_rooms(self, inc_temp: float, duration: int) -> bool:
+        """
+        Boost the temperature of all rooms
+        param inc_temp: increase target temperature over current temperature by 0C to 5C
+        param duration: the duration to boost the room temperatures in minutes
+        return: boolean
+        """
+        return self._send_command(
+            {
+                "RequestOverride": {
+                    "Type": "Boost",
+                    "DurationMinutes": duration,
+                    "IncreaseSetPointBy": _to_wiser_temp(inc_temp)
+                    if _to_wiser_temp(inc_temp) <= MAX_BOOST_INCREASE
+                    else MAX_BOOST_INCREASE,
+                }
+            }
+        )
+
+    def cancel_all_overrides(self):
+        """
+        Cancel all overrides and set room schedule to the current temperature setting for the mode
+        return: boolean
+        """
+        return self._send_command({"RequestOverride": {"Type": "CancelUserOverrides"}})
+
+    
 
 
 class _WiserSmartValve(_WiserDevice):
