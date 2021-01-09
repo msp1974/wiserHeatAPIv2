@@ -143,7 +143,6 @@ class WiserAPI:
     """
     Main api class to access all entities and attributes of wiser system
     """
-
     def __init__(self, host: str, secret: str, units: WiserUnitsEmun = WiserUnitsEmun.metric):
         # Main data stores
         self._domain_data = {}
@@ -1948,10 +1947,9 @@ class _WiserHotwater:
         return self._send_command({"RequestOverride": {"Type": "None"}})
 
 
-"""
-Support Classess
-"""
-
+# -----------------------------------------------------------
+# Support Classess
+# -----------------------------------------------------------
 
 class _WiserNetwork:
     """Data structure for network information for a Wiser Hub"""
@@ -2197,7 +2195,9 @@ class _WiserScheduleNext:
             return self._data.get("State")
         return None
 
-
+# -----------------------------------------------------------
+# Support Functions
+# -----------------------------------------------------------
 def _validate_temperature(temp: float) -> float:
     """
     Validates temperature value is in range of Wiser Hub allowed values
