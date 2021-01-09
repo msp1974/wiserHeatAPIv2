@@ -2,24 +2,21 @@
 """
 # Wiser API Version 2
 
-Angelosantagata@gmail.com
+angelosantagata@gmail.com
 msparker@sky.com
 
 
 https://github.com/asantaga/wiserheatingapi
 
 
-This API Facade allows you to communicate with your wiserhub.
-This API is used by the homeassistant integration available at
-https://github.com/asantaga/wiserHomeAssistantPlatform
+This API allows you to get information from and control your wiserhub.
 """
 
-# TODO: Allow display in F and C based on global setting
 # TODO: Keep objects and update instead of recreating on hub update
-# TODO: Make class that can convert to and from Unix timestamp for hub time
-# TODO: Sort out list of Exception classes
+# TODO: Update entity values after commend issued to get current values
 
 import enum
+import inspect
 import json
 import logging
 import requests
@@ -91,13 +88,7 @@ WISERSMARTPLUG = "SmartPlug/{}"
 
 
 # Exception Handlers
-class Error(Exception):
-    """Base class for exceptions in this module."""
-
-    pass
-
-
-class WiserConnectionError(Error):
+class WiserHubConnectionError(Exception):
     pass
 
 
@@ -105,45 +96,11 @@ class WiserHubAuthenticationError(Exception):
     pass
 
 
-class WiserHubTimeoutError(Error):
+class WiserHubRESTError(Exception):
     pass
 
 
-class WiserRESTError(Error):
-    pass
-
-
-# TODO: Verify need of these
-class WiserNoDevicesFoundError(Error):
-    pass
-
-
-class wiserNotSupportedError(Error):
-    pass
-
-
-class WiserNotFoundError(Error):
-    pass
-
-
-class WiserNoHotWaterFoundError(Error):
-    pass
-
-
-class WiserNoHeatingFoundError(Error):
-    pass
-
-
-class WiserHubDataNullError(Error):
-    _LOGGER.info("WiserHub data null after refresh")
-    pass
-
-
-class WiserNoRoomsFoundError(Error):
-    pass
-
-
-class WiserNotImplementedError(Error):
+class WiserHubNotImplementedError(Exception):
     _LOGGER.info("Function not yet implemented")
     pass
 
@@ -155,31 +112,39 @@ class WiserModeEnum(enum.Enum):
     manual = "Manual"
 
 
+class WiserHotWaterStateEnum(enum.Enum):
+    off = "Off"
+    on = "On"
+
+
 class WiserAwayActionEnum(enum.Enum):
     off = "Off"
     no_change = "NoChange"
 
 
+class WiserUnitsEmun(enum.Enum):
+    imperial = "imperial"
+    metric = "metric"
+
+
+# Connection info class
 class _WiserConnection:
     def __init(self):
         self.host = None
         self.secret = None
         self.hub_name = None
+        self.units = WiserUnitsEmun.metric
 
 
 # Global variables
 _wiser_api_connection = _WiserConnection()
-
 
 class WiserAPI:
     """
     Main api class to access all entities and attributes of wiser system
     """
 
-    def __init__(self, host: str, secret: str):
-        self.host = host
-        self.secret = secret
-
+    def __init__(self, host: str, secret: str, units: WiserUnitsEmun = WiserUnitsEmun.metric):
         # Main data stores
         self._domain_data = {}
         self._network_data = {}
@@ -198,11 +163,16 @@ class WiserAPI:
 
         _LOGGER.info("WiserHub API Initialised : Version {}".format(__VERSION__))
 
+        # Set default unit system
+        _wiser_api_connection.units = units
+        _LOGGER.info("Units set to {}".format(_wiser_api_connection.units.name.title()))
+
+
         # Set hub secret to global object
-        _wiser_api_connection.secret = self.secret
+        _wiser_api_connection.secret = secret
 
         # Do hub discovery if null IP is passed when initialised
-        if self.host is None:
+        if host is None:
             wiser_discover = WiserDiscovery()
             hub = wiser_discover.discover_hub()
             if len(hub) > 0:
@@ -210,14 +180,14 @@ class WiserAPI:
                 _wiser_api_connection.host = hub[0]["hostname"]
 
                 _LOGGER.info(
-                    "Hub: {}, IP: {}".format(
+                    "Hub: {}, Host: {}".format(
                         _wiser_api_connection.hubName, _wiser_api_connection.host
                     )
                 )
             else:
                 _LOGGER.error("No Wiser hub discovered on network")
         else:
-            _wiser_api_connection.host = self.host
+            _wiser_api_connection.host = host
 
         # Read hub data if hub IP and secret exist
         if (
@@ -229,46 +199,10 @@ class WiserAPI:
         else:
             _LOGGER.error("No connection info")
 
-    @property
-    def hub(self):
-        return self._hub
-
-    @property
-    def devices(self):
-        return self._devices
-
-    @property
-    def schedules(self):
-        return self._schedules
-
-    @property
-    def smart_valves(self):
-        return self._smart_valves
-
-    @property
-    def smart_plugs(self):
-        return self._smart_plugs
-
-    @property
-    def room_stats(self):
-        return self._room_stats
-
-    @property
-    def rooms(self):
-        return self._rooms
-
-    @property
-    def hotwater(self):
-        return self._hotwater
-
-    @property
-    def heating(self):
-        return self._heating
-
     def read_hub_data(
         self, domain: bool = True, network: bool = True, schedule: bool = True
     ):
-        """ Read all data from hub and populate objects """
+        """Read all data from hub and populate objects"""
         # Read hub data endpoints
         hub_data = _WiserRestController()
         if domain:
@@ -293,7 +227,6 @@ class WiserAPI:
 
         if self._domain_data.get("Device"):
             for device in self._domain_data.get("Device"):
-
                 # Add to generic device list
                 self._devices.append(_WiserDevice(device))
 
@@ -346,22 +279,29 @@ class WiserAPI:
 
         # Add room objects
         self._rooms = []
-        if self._domain_data.get("Room"):
-            self._rooms = [
+        for room in self._domain_data.get("Room", []):
+            schedule = self.get_schedule_by_id(room.get("ScheduleId", 0))
+            devices = [
+                device
+                for device in self.devices
+                if (
+                    device.id in room.get("SmartValveIds", ["-1"])
+                    or device.id == room.get("RoomStatId", "-1")
+                    or device.id
+                    in [
+                        smartplug.id
+                        for smartplug in self._smart_plugs
+                        if smartplug.room_id == room.get("id", 0)
+                    ]
+                )
+            ]
+            self._rooms.append(
                 _WiserRoom(
                     room,
-                    self.get_schedule_by_id(room.get("ScheduleId")),
-                    [
-                        device
-                        for device in self.devices
-                        if (
-                            device.id in room.get("SmartValveIds", ["0"])
-                            or device.id == room.get("RoomStatId", "0")
-                        )
-                    ],
+                    schedule,
+                    devices,
                 )
-                for room in self._domain_data.get("Room")
-            ]
+            )
 
         # Add hotwater object
         self._hotwater = None
@@ -374,6 +314,7 @@ class WiserAPI:
             )
 
         # Add heating object
+        # TODO: Only pass rooms on relevant heating channel
         self._heating = []
         if self._domain_data.get("HeatingChannel"):
             for heat_channel in self._domain_data.get("HeatingChannel", []):
@@ -382,15 +323,69 @@ class WiserAPI:
         # If gets here with no exceptions then success and return true
         return True
 
-    """
-    Find entities by id or name
-    """
+    # API properties
+    @property
+    def devices(self):
+        """List of device entities attached to the Wiser Hub"""
+        return self._devices
+
+    @property
+    def heating(self):
+        """List of heating channel entities on the Wiser Hub"""
+        return self._heating
+
+    @property
+    def hotwater(self):
+        """List of hot water entities on the Wiser Hub"""
+        return self._hotwater
+
+    @property
+    def hub(self):
+        """Entity of the Wiser Hub"""
+        return self._hub
+
+    @property
+    def rooms(self):
+        """List of room entities configured on the Wiser Hub"""
+        return self._rooms
+
+    @property
+    def room_stats(self):
+        """List of room stat entities connected to the Wiser Hub"""
+        return self._room_stats
+
+    @property
+    def schedules(self):
+        """List of schedule entities on the Wiser Hub"""
+        return self._schedules
+
+    @property
+    def smart_plugs(self):
+        """List of smart plug entities connected to the Wiser Hub"""
+        return self._smart_plugs
+
+    @property
+    def smart_valves(self):
+        """List of smart valve (iTRV) entities connected to the Wiser Hub"""
+        return self._smart_valves
+
+    @property
+    def units(self) -> WiserUnitsEmun:
+        """Get or set units for temperature"""
+        return _wiser_api_connection.units
+
+    @units.setter
+    def units(self, units: WiserUnitsEmun):
+        _wiser_api_connection.units = units
+
+
+    # Functions to get entities by id or name
     # Rooms
     def get_room_by_id(self, id: int):
         """
         Gets a room object from the rooms id
         param id: id of room
-        return: _wiserRoom object
+        return: _WiserRoom object
         """
         try:
             return [room for room in self.rooms if room.id == id][0]
@@ -401,19 +396,31 @@ class WiserAPI:
         """
         Gets a room object from the rooms name
         param name: name of room
-        return: _wiserRoom object
+        return: _WiserRoom object
         """
         try:
             return [room for room in self.rooms if room.name == name][0]
         except IndexError:
             return None
 
+    def get_room_by_device_id(self, device_id: int):
+        """
+        Gets a room object for the room a device id belongs to
+        param device_id: the id of the device
+        return: _WiserRoom object
+        """
+        for room in self.rooms:
+            for device in room.devices:
+                if device.id == device_id:
+                    return room
+        return None
+
     # Schedules
     def get_schedule_by_id(self, id: int):
         """
         Gets a schedule object from the schedules id
         param id: id of schedule
-        return: _wiserSchedule object
+        return: _WiserSchedule object
         """
         try:
             return [schedule for schedule in self.schedules if schedule.id == id][0]
@@ -425,7 +432,7 @@ class WiserAPI:
         Gets a schedule object from the schedules name
         (room name, smart plug name, hotwater)
         param name: name of schedule
-        return: _wiserSchedule object
+        return: _WiserSchedule object
         """
         try:
             return [schedule for schedule in self.schedules if schedule.name == name][0]
@@ -437,7 +444,7 @@ class WiserAPI:
         """
         Gets a device object from the devices id
         param id: id of device
-        return: _wiserDevice object
+        return: _WiserDevice object
         """
         try:
             return [device for device in self.devices if device.id == id][0]
@@ -447,12 +454,23 @@ class WiserAPI:
     def get_device_by_node_id(self, node_id: int):
         """
         Gets a device object from the devices zigbee node id
-        param nodeId: zigbee node id of device
-        return: _wiserDevice object
+        param node_id: zigbee node id of device
+        return: _WiserDevice object
         """
         try:
             return [device for device in self.devices if device.node_id == node_id][0]
         except IndexError:
+            return None
+
+    def get_devices_by_room_id(self, room_id: int):
+        """
+        Gets a list of devices belonging to the room id
+        param room_id: the id of the room
+        return: _WiserDevice list object
+        """
+        try:
+            return self.get_room_by_id(room_id).devices
+        except AttributeError:
             return None
 
     # Smartvalves
@@ -460,7 +478,7 @@ class WiserAPI:
         """
         Gets a SmartValve object from the SmartValves id
         param id: id of smart valve
-        return: _wiserSmartValve object
+        return: _WiserSmartValve object
         """
         try:
             return [
@@ -474,7 +492,7 @@ class WiserAPI:
         """
         Gets a SmartPlug object from the SmartPlugs id
         param id: id of smart plug
-        return: _wiserSmartPlug object
+        return: _WiserSmartPlug object
         """
         try:
             return [
@@ -488,7 +506,7 @@ class WiserAPI:
         """
         Gets a RoomStat object from the RoomStatss id
         param id: id of room stat
-        return: _wiserRoomStat object
+        return: _WiserRoomStat object
         """
         try:
             return [room_stat for room_stat in self.room_stats if room_stat.id == id][0]
@@ -519,15 +537,15 @@ class _WiserRestController:
         """
         url = url.format(_wiser_api_connection.host)
         try:
-            resp = requests.get(
+            response = requests.get(
                 url,
                 headers=self._getHeaders(),
                 timeout=REST_TIMEOUT,
             )
-            resp.raise_for_status()
+            response.raise_for_status()
 
         except requests.exceptions.ConnectTimeout:
-            raise WiserHubTimeoutError(
+            raise WiserHubConnectionError(
                 "Connection timed out trying to update from Wiser Hub"
             )
 
@@ -537,25 +555,25 @@ class _WiserRestController:
                     "Error authenticating to Wiser Hub.  Check your secret key"
                 )
             elif ex.response.status_code == 404:
-                raise WiserRESTError("Rest endpoint not found on Wiser Hub")
+                raise WiserHubRESTError("Rest endpoint not found on Wiser Hub")
             else:
-                raise WiserRESTError(
-                    "Unknown error getting data from Wiser Hub.  Error is: {}".format(
+                raise WiserHubRESTError(
+                    "Unknown error getting data from Wiser Hub.  Error code is: {}".format(
                         ex.response.status_code
                     )
                 )
 
         except requests.exceptions.ConnectionError:
-            raise WiserConnectionError(
+            raise WiserHubConnectionError(
                 "Connection error trying to update from Wiser Hub"
             )
 
         except requests.exceptions.ChunkedEncodingError:
-            raise WiserConnectionError(
+            raise WiserHubConnectionError(
                 "Chunked Encoding error trying to update from Wiser Hub"
             )
 
-        return resp.json()
+        return response.json()
 
     def _patch_hub_data(self, url: str, patch_data: dict):
         """
@@ -564,25 +582,46 @@ class _WiserRestController:
         param patchData: json object containing command and values to set
         return: boolean
         """
-        _LOGGER.debug("patchdata {} ".format(patch_data))
-        response = requests.patch(
-            url=url,
-            headers=self._getHeaders(),
-            json=patch_data,
-            timeout=REST_TIMEOUT,
-        )
-        # TODO: Improve error handling (maybe inc retry?)
-        if response.status_code != 200:
-            _LOGGER.debug(
-                "Set {} Response code = {}".format(patch_data, response.status_code)
+        try:
+            response = requests.patch(
+                url=url,
+                headers=self._getHeaders(),
+                json=patch_data,
+                timeout=REST_TIMEOUT,
             )
-            raise WiserRESTError(
-                "Error setting {} , error {} {}".format(
-                    patch_data, response.status_code, response.text
+            # TODO: Improve error handling (maybe inc retry?)
+            response.raise_for_status()
+
+        except requests.exceptions.ConnectTimeout:
+            raise WiserHubConnectionError(
+                "Connection timed out trying to send command to Wiser Hub"
+            )
+
+        except requests.HTTPError as ex:
+            if ex.response.status_code == 401:
+                raise WiserHubAuthenticationError(
+                    "Error authenticating to Wiser Hub.  Check your secret key"
                 )
+            elif ex.response.status_code == 404:
+                raise WiserHubRESTError("Rest endpoint not found on Wiser Hub")
+            else:
+                raise WiserHubRESTError(
+                    "Error setting {} , error {} {}".format(
+                        patch_data, response.status_code, response.text
+                    )
+                )
+
+        except requests.exceptions.ConnectionError:
+            raise WiserHubConnectionError(
+                "Connection error trying to send command to Wiser Hub"
             )
-        else:
-            return True
+
+        except requests.exceptions.ChunkedEncodingError:
+            raise WiserHubConnectionError(
+                "Chunked Encoding error trying to send command to Wiser Hub"
+            )
+
+        return True
 
     def _send_command(self, url: str, command_data: dict):
         """
@@ -592,6 +631,9 @@ class _WiserRestController:
         return: boolean
         """
         url = WISERHUBDOMAIN.format(_wiser_api_connection.host) + url
+        _LOGGER.debug(
+            "Sending command to url: {} with parameters {}".format(url, command_data)
+        )
         return self._patch_hub_data(url, command_data)
 
     def _send_schedule(self, url: str, schedule_data: dict):
@@ -602,6 +644,9 @@ class _WiserRestController:
         return: boolean
         """
         url = url.format(_wiser_api_connection.host)
+        _LOGGER.debug(
+            "Sending schedule to url: {} with data {}".format(url, schedule_data)
+        )
         return self._patch_hub_data(url, schedule_data)
 
 
@@ -649,11 +694,8 @@ class WiserDiscovery:
     def discover_hub(self, min_search_time: int = 2, max_search_time: int = 10):
         """
         Call zeroconf service browser to find Wiser hubs on the local network.
-
         param (optional) min_search_time: min seconds to wait for responses before returning
-
         param (optional) max_search_time: max seconds to wait for responses before returning
-
         return: list of discovered hubs
         """
         timeout = 0
@@ -675,50 +717,50 @@ class WiserDiscovery:
 
 
 class _WiserDevice(object):
-    """ Class representing a wiser device """
+    """Class representing a wiser device"""
 
     def __init__(self, data: dict):
         self._data = data
-        self.signal = _WiserSignal(data)
+        self.signal = _WiserZwaveSignal(data)
 
     @property
     def firmware_version(self) -> str:
-        """ Get firmware version of device """
+        """Get firmware version of device"""
         return self._data.get("ActiveFirmwareVersion", TEXT_UNKNOWN)
 
     @property
     def id(self) -> int:
-        """ Get id of device """
+        """Get id of device"""
         return self._data.get("id")
 
     @property
     def model(self) -> str:
-        """ Get model of device """
+        """Get model of device"""
         return self._data.get("ModelIdentifier", TEXT_UNKNOWN)
 
     @property
     def node_id(self) -> int:
-        """ Get zigbee node id of device """
+        """Get zigbee node id of device"""
         return self._data.get("NodeId", 0)
 
     @property
     def parent_node_id(self) -> int:
-        """ Get zigbee node id of device this device is connected to """
+        """Get zigbee node id of device this device is connected to"""
         return self._data.get("ParentNodeId", 0)
 
     @property
     def product_type(self) -> str:
-        """ Get product type of device """
+        """Get product type of device"""
         return self._data.get("ProductType", TEXT_UNKNOWN)
 
     @property
     def serial_number(self) -> str:
-        """ Get serial number of device """
+        """Get serial number of device"""
         return self._data.get("SerialNumber", TEXT_UNKNOWN)
 
 
 class _WiserSchedule(object):
-    """ Class representing a wiser Schedule """
+    """Class representing a wiser Schedule"""
 
     def __init__(self, schedule_type: str, schedule_data: dict):
         self._type = schedule_type
@@ -832,19 +874,18 @@ class _WiserSchedule(object):
                         times.append(time)
                     if key.title() == TEXT_TEMP:
                         temp = _to_wiser_temp(
-                            _validate_temperature(
-                                value if str(value).title() != TEXT_OFF else TEMP_OFF
-                            )
+                            value if str(value).title() != TEXT_OFF else TEMP_OFF
                         )
                         temps.append(temp)
             return {TEXT_TIME: times, TEXT_DEGREESC: temps}
         else:
-            for time, state in day_schedule:
+            for entry in day_schedule:
                 try:
-                    time = int(str(time).replace(":", ""))
-                    if state.title() == TEXT_OFF:
+                    time = int(str(entry.get("Time")).replace(":", ""))
+                    if entry.get("State").title() == TEXT_OFF:
                         time = 0 - int(time)
-                except Exception:
+                except Exception as ex:
+                    _LOGGER.debug(ex)
                     time = 0
                 times.append(time)
             return times
@@ -855,57 +896,67 @@ class _WiserSchedule(object):
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        if id == 0:
-            id = self.id
-        rest = _WiserRestController()
-        return rest._send_schedule(
-            WISERHUBSCHEDULES + "/{}/{}".format(self._type, id), schedule_data
-        )
+        try:
+            rest = _WiserRestController()
+            result = rest._send_schedule(
+                WISERHUBSCHEDULES
+                + "{}/{}".format(self._type, str(id if id != 0 else self.id)),
+                schedule_data,
+            )
+            if result:
+                _LOGGER.info(
+                    "Wiser schedule - {} command successful".format(
+                        inspect.stack()[1].function
+                    )
+                )
+            return result
+        except Exception as ex:
+            _LOGGER.debug(ex)
 
     # TODO: Decide on seperate properties or single setting or both
     @property
     def current_target_temperature(self) -> float:
-        """ Get current scheduled target temperature for heating device """
-        return _from_wiser_temp(self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM))
+        """Get current scheduled target temperature for heating device"""
+        return _from_wiser_temp(
+            self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM)
+        )
+
+    @property
+    def current_setting(self):
+        """Get current scheduled setting (temp or state)"""
+        if self._type == "Heating":
+            return self.current_target_temperature
+        if self._type == "OnOff":
+            return self.current_state
 
     @property
     def current_state(self) -> str:
-        """ Get current scheduled state for on off device """
+        """Get current scheduled state for on off device"""
         return self._schedule_data.get("CurrentState", TEXT_UNKNOWN)
 
     @property
-    def current_setting(self) -> str:
-        """ Get current scheduled setting (temp or state) """
-        if self._type == "Heating":
-            return _from_wiser_temp(
-                self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM)
-            )
-        if self._type == "OnOff":
-            return self._schedule_data.get("CurrentState", TEXT_UNKNOWN)
-
-    @property
     def id(self) -> int:
-        """ Get id of schedule """
+        """Get id of schedule"""
         return self._schedule_data.get("id")
 
     @property
     def name(self) -> str:
-        """ Get name of schedule """
+        """Get name of schedule"""
         return self._schedule_data.get("Name")
 
     @property
     def next_entry(self):
-        """ Get details of next schedule entry """
+        """Get details of next schedule entry"""
         return _WiserScheduleNext(self._type, self._schedule_data.get("Next"))
 
     @property
     def schedule_data(self) -> str:
-        """ Get json output of schedule data """
-        return self._remove_schedule_elements(self._schedule_data)
+        """Get json output of schedule data"""
+        return self._remove_schedule_elements(self._schedule_data.copy())
 
     @property
     def schedule_type(self) -> str:
-        """ Get schedule type (heating or on/off) """
+        """Get schedule type (heating or on/off)"""
         return self._type
 
     def copy_schedule(self, to_id: int) -> bool:
@@ -914,7 +965,7 @@ class _WiserSchedule(object):
         param toId: id of schedule to copy to
         return: boolen - true = successfully set, false = failed to set
         """
-        return self._send_schedule(self.schedule_data, to_id)
+        return self._send_schedule(self._schedule_data, to_id)
 
     def save_schedule_to_file(self, schedule_file: str) -> bool:
         """
@@ -924,9 +975,10 @@ class _WiserSchedule(object):
         """
         try:
             with open(schedule_file, "w") as file:
-                json.dump(self.schedule_data, file)
+                json.dump(self._schedule_data, file, indent=4)
             return True
-        except Exception:
+        except Exception as ex:
+            _LOGGER.debug(ex)
             return False
 
     def save_schedule_to_yaml_file(self, schedule_yaml_file: str) -> bool:
@@ -938,9 +990,10 @@ class _WiserSchedule(object):
         try:
             yaml = YAML()
             with open(schedule_yaml_file, "w") as file:
-                yaml.dump(self._convert_from_wiser_schedule(self.schedule_data), file)
+                yaml.dump(self._convert_from_wiser_schedule(self._schedule_data), file)
             return True
-        except Exception:
+        except Exception as ex:
+            _LOGGER.debug(ex)
             return False
 
     def set_schedule(self, schedule_data: dict) -> bool:
@@ -949,7 +1002,7 @@ class _WiserSchedule(object):
         param scheduleData: json data respresenting a schedule
         return: boolen - true = successfully set, false = failed to set
         """
-        return self._send_schedule(schedule_data)
+        return self._send_schedule(self._remove_schedule_elements(schedule_data))
 
     def set_schedule_from_file(self, schedule_file: str):
         """
@@ -959,9 +1012,10 @@ class _WiserSchedule(object):
         """
         try:
             with open(schedule_file, "r") as file:
-                self.set_schedule(json.load(file))
+                self.set_schedule(self._remove_schedule_elements(json.load(file)))
                 return True
-        except Exception:
+        except Exception as ex:
+            _LOGGER.debug(ex)
             return False
 
     def set_schedule_from_yaml_file(self, schedule_file: str) -> bool:
@@ -971,17 +1025,18 @@ class _WiserSchedule(object):
         return: boolen - true = successfully set, false = failed to set
         """
         try:
-            yaml = YAML(typ="safe", pure=True)
+            yaml = YAML()
             with open(schedule_file, "r") as file:
                 y = yaml.load(file)
                 self.set_schedule(self._convert_to_wiser_schedule(y))
                 return True
-        except Exception:
+        except Exception as ex:
+            _LOGGER.debug(ex)
             return False
 
 
 class _WiserHub(object):
-    """ Class representing a Wiser Hub device """
+    """Class representing a Wiser Hub device"""
 
     def __init__(
         self, data: dict, device_data: dict, network_data: dict, cloud_data: dict
@@ -992,17 +1047,17 @@ class _WiserHub(object):
         self._cloud_data = cloud_data
 
         self._automatic_daylight_saving = data.get("AutomaticDaylightSaving")
-        self._away_mode_affects_hotwater = data.get("AwayModeAffectsHotWater", False)
-        self._away_mode_target_temperature = data.get("AwayModeSetPointLimit", 0)
-        self._comfort_mode_enabled = data.get("ComfortModeEnabled", False)
+        self._away_mode_affects_hotwater = data.get("AwayModeAffectsHotWater")
+        self._away_mode_target_temperature = data.get("AwayModeSetPointLimit")
+        self._comfort_mode_enabled = data.get("ComfortModeEnabled")
         self._degraded_mode_target_temperature = data.get(
-            "DegradedModeSetpointThreshold", 0
+            "DegradedModeSetpointThreshold"
         )
-        self._eco_mode_enabled = data.get("EcoModeEnabled", False)
+        self._eco_mode_enabled = data.get("EcoModeEnabled")
         self._hub_time = datetime.fromtimestamp(data.get("UnixTime"))
         self._override_type = data.get("OverrideType", "")
-        self._timezone_offset = data.get("TimeZoneOffset", 0)
-        self._valve_protection_enabled = data.get("ValveProtectionEnabled", False)
+        self._timezone_offset = data.get("TimeZoneOffset")
+        self._valve_protection_enabled = data.get("ValveProtectionEnabled")
 
     def _sendCommand(self, cmd: dict) -> bool:
         """
@@ -1011,16 +1066,21 @@ class _WiserHub(object):
         return: boolen - true = success, false = failed
         """
         rest = _WiserRestController()
-        return rest._send_command(WISERSYSTEM, cmd)
+        result = rest._send_command(WISERSYSTEM, cmd)
+        if result:
+            _LOGGER.info(
+                "Wiser hub - {} command successful".format(inspect.stack()[1].function)
+            )
+        return result
 
     @property
     def active_firmware_version(self) -> str:
-        """ Get current hub firmware version """
-        return self._data.get("ActiveSystemVersion")
+        """Get current hub firmware version"""
+        return self._data.get("ActiveSystemVersion", TEXT_UNKNOWN)
 
     @property
     def automatic_daylight_saving_enabled(self) -> bool:
-        """ Get or set if auto daylight saving is enabled"""
+        """Get or set if auto daylight saving is enabled"""
         return self._automatic_daylight_saving
 
     @automatic_daylight_saving_enabled.setter
@@ -1030,7 +1090,7 @@ class _WiserHub(object):
 
     @property
     def away_mode_enabled(self) -> bool:
-        """ Get or set if away mode is enabled """
+        """Get or set if away mode is enabled"""
         return True if self._override_type == "Away" else False
 
     @away_mode_enabled.setter
@@ -1040,7 +1100,7 @@ class _WiserHub(object):
 
     @property
     def away_mode_affects_hotwater(self) -> bool:
-        """ Get or set if setting away mode affects hot water """
+        """Get or set if setting away mode affects hot water"""
         return self._away_mode_affects_hotwater
 
     @away_mode_affects_hotwater.setter
@@ -1050,18 +1110,18 @@ class _WiserHub(object):
 
     @property
     def away_mode_target_temperature(self) -> float:
-        """ Get or set target temperature for away mode """
+        """Get or set target temperature for away mode"""
         return _from_wiser_temp(self._away_mode_target_temperature)
 
     @away_mode_target_temperature.setter
     def away_mode_target_temperature(self, temp: float):
-        temp = _to_wiser_temp(_validate_temperature(temp))
+        temp = _to_wiser_temp(temp)
         if self._sendCommand({"AwayModeSetPointLimit": temp}):
             self._away_mode_target_temperature = _to_wiser_temp(temp)
 
     @property
     def boiler_fuel_type(self) -> str:
-        """ Get boiler fuel type setting """
+        """Get boiler fuel type setting"""
         # TODO: Add ability to set to 1 of 3 types
         return self._data.get("BoilerSettings", {"FuelType": TEXT_UNKNOWN}).get(
             "FuelType"
@@ -1069,17 +1129,17 @@ class _WiserHub(object):
 
     @property
     def brand_name(self) -> str:
-        """ Get brand name of Wiser hub """
+        """Get brand name of Wiser hub"""
         return self._data.get("BrandName")
 
     @property
     def cloud(self):
-        """ Get cloud settings """
-        return _WiserCloud(self._data.get("CloudConnectionStatus", "Disconnected"), self._cloud_data)
+        """Get cloud settings"""
+        return _WiserCloud(self._data.get("CloudConnectionStatus"), self._cloud_data)
 
     @property
     def comfort_mode_enabled(self) -> bool:
-        """ Get or set if comfort mode is enabled """
+        """Get or set if comfort mode is enabled"""
         return self._comfort_mode_enabled
 
     @comfort_mode_enabled.setter
@@ -1089,18 +1149,18 @@ class _WiserHub(object):
 
     @property
     def degraded_mode_target_temperature(self) -> float:
-        """ Get or set degraded mode target temperature """
+        """Get or set degraded mode target temperature"""
         return _from_wiser_temp(self._degraded_mode_target_temperature)
 
     @degraded_mode_target_temperature.setter
     def degraded_mode_target_temperature(self, temp: float):
-        temp = _to_wiser_temp(_validate_temperature(temp))
+        temp = _to_wiser_temp(temp)
         if self._sendCommand({"DegradedModeSetpointThreshold": temp}):
             self._degraded_mode_target_temperature = temp
 
     @property
     def eco_mode_enabled(self) -> bool:
-        """ Get or set whether eco mode is enabled """
+        """Get or set whether eco mode is enabled"""
         return self._eco_mode_enabled
 
     @eco_mode_enabled.setter
@@ -1110,74 +1170,63 @@ class _WiserHub(object):
 
     @property
     def firmware_over_the_air_enabled(self) -> bool:
-        """ Whether firmware updates over the air are enabled on the hub """
-        return self._data.get("FotaEnabled", False)
+        """Whether firmware updates over the air are enabled on the hub"""
+        return self._data.get("FotaEnabled")
 
     @property
     def geo_position(self):
-        """ Get geo location information """
+        """Get geo location information"""
         return _WiserGPS(self._data.get("GeoPosition", {}))
 
     @property
     def heating_button_override_state(self) -> bool:
-        """ Get if heating override button is on """
+        """Get if heating override button is on"""
         return (
             True if self._data.get("HeatingButtonOverrideState") == TEXT_ON else False
         )
 
     @property
     def hotwater_button_override_state(self) -> bool:
-        """ Get if hot water override button is on """
+        """Get if hot water override button is on"""
         return (
             True if self._data.get("HotWaterButtonOverrideState") == TEXT_ON else False
         )
 
     @property
     def hub_time(self) -> datetime:
-        """ Get or set current time on hub """
+        """Get the current time on hub"""
         return self._hub_time
-
-    @hub_time.setter
-    def hub_time(self, dt: datetime):
-        """
-        Set the time on the wiser hub to current system time
-        return: boolen - true = success, false = failed
-        """
-        if self._sendCommand(
-            {"UnixTime": int(dt.replace(tzinfo=timezone.utc).timestamp())}
-        ):
-            self._hub_time = dt
 
     @property
     def name(self) -> str:
-        """ Get name of hub """
-        return self._network_data.get(
-            "Station", {"MdnsHostname": "WiserHeatxxxxxx"}
-        ).get("MdnsHostname")
+        """Get name of hub"""
+        return self._network_data.get("Station", {"MdnsHostname": TEXT_UNKNOWN}).get(
+            "MdnsHostname"
+        )
 
     @property
     def network(self):
-        """ Get network information from hub """
+        """Get network information from hub"""
         return _WiserNetwork(self._network_data.get("Station", {}))
 
     @property
     def opentherm_connection_status(self) -> str:
-        """ Get opentherm connection status """
-        return self._data.get("OpenThermConnectionStatus", "Disconnected")
+        """Get opentherm connection status"""
+        return self._data.get("OpenThermConnectionStatus", TEXT_UNKNOWN)
 
     @property
     def pairing_status(self) -> str:
-        """ Get account pairing status """
+        """Get account pairing status"""
         return self._data.get("PairingStatus", TEXT_UNKNOWN)
 
     @property
     def system_mode(self) -> str:
-        """ Get current system mode """
+        """Get current system mode"""
         return self._data.get("SystemMode", TEXT_UNKNOWN)
 
     @property
     def timezone_offset(self) -> int:
-        """ Get timezone offset in minutes """
+        """Get timezone offset in minutes"""
         return self._timezone_offset
 
     @timezone_offset.setter
@@ -1187,16 +1236,16 @@ class _WiserHub(object):
 
     @property
     def user_overrides_active(self) -> bool:
-        """ Get if any overrides are active """
+        """Get if any overrides are active"""
         return self._data.get("UserOverridesActive", False)
 
     @property
-    def valve_protection(self) -> bool:
-        """ Get or set if valve protection is enabled """
+    def valve_protection_enabled(self) -> bool:
+        """Get or set if valve protection is enabled"""
         return self._valve_protection_enabled
 
-    @valve_protection.setter
-    def valve_protection(self, enabled: bool):
+    @valve_protection_enabled.setter
+    def valve_protection_enabled(self, enabled: bool):
         """
         Set the valve protection setting on the wiser hub
         param enabled: turn on or off
@@ -1206,7 +1255,7 @@ class _WiserHub(object):
 
 
 class _WiserSmartValve(_WiserDevice):
-    """ Class representing a Wiser Smart Valve device """
+    """Class representing a Wiser Smart Valve device"""
 
     def __init__(self, data: dict, device_type_data: dict):
         super().__init__(data)
@@ -1223,16 +1272,23 @@ class _WiserSmartValve(_WiserDevice):
         return: boolen - true = success, false = failed
         """
         rest = _WiserRestController()
-        return rest._send_command(WISERSMARTVALVE.format(self.id), cmd)
+        result = rest._send_command(WISERSMARTVALVE.format(self.id), cmd)
+        if result:
+            _LOGGER.info(
+                "Wiser smart valve - {} command successful".format(
+                    inspect.stack()[1].function
+                )
+            )
+        return result
 
     @property
     def battery(self):
-        """ Get battery information for smart valve """
+        """Get battery information for smart valve"""
         return _WiserBattery(self._data)
 
     @property
     def device_lock_enabled(self) -> bool:
-        """ Get or set smart valve device lock """
+        """Get or set smart valve device lock"""
         return self._device_lock_enabled
 
     @device_lock_enabled.setter
@@ -1242,17 +1298,17 @@ class _WiserSmartValve(_WiserDevice):
 
     @property
     def current_target_temperature(self) -> float:
-        """ Get the smart valve current target temperature setting """
+        """Get the smart valve current target temperature setting"""
         return _from_wiser_temp(self._device_type_data.get("SetPoint"))
 
     @property
     def current_temperature(self) -> float:
-        """ Get the current temperature measured by the smart valve """
+        """Get the current temperature measured by the smart valve"""
         return _from_wiser_temp(self._device_type_data.get("MeasuredTemperature"))
 
     @property
     def identify(self) -> bool:
-        """ Get or set if the smart valve identify function is enabled """
+        """Get or set if the smart valve identify function is enabled"""
         return self._indentify_active
 
     @identify.setter
@@ -1262,17 +1318,17 @@ class _WiserSmartValve(_WiserDevice):
 
     @property
     def mounting_orientation(self) -> str:
-        """ Get the mouting orientation of the smart valve """
+        """Get the mouting orientation of the smart valve"""
         return self._device_type_data.get("MountingOrientation")
 
     @property
     def percentage_demand(self) -> int:
-        """ Get the current percentage demand of the samrt valve """
+        """Get the current percentage demand of the smart valve"""
         return self._device_type_data.get("PercentageDemand")
 
 
 class _WiserRoomStat(_WiserDevice):
-    """ Class representing a Wiser Room Stat device """
+    """Class representing a Wiser Room Stat device"""
 
     def __init__(self, data, device_type_data):
         super().__init__(data)
@@ -1288,31 +1344,38 @@ class _WiserRoomStat(_WiserDevice):
         return: boolen - true = success, false = failed
         """
         rest = _WiserRestController()
-        return rest._send_command(WISERROOMSTAT.format(self.id), cmd)
+        result = rest._send_command(WISERROOMSTAT.format(self.id), cmd)
+        if result:
+            _LOGGER.info(
+                "Wiser room stat - {} command successful".format(
+                    inspect.stack()[1].function
+                )
+            )
+        return result
 
     @property
     def battery(self):
-        """ Get the battery information for the room stat """
+        """Get the battery information for the room stat"""
         return _WiserBattery(self._data)
 
     @property
     def current_humidity(self) -> int:
-        """ Get the current humidity reading of the room stat """
+        """Get the current humidity reading of the room stat"""
         return self._device_type_data.get("MeasuredHumidity", 0)
 
     @property
     def current_target_temperature(self) -> float:
-        """ Get the room stat current target temperature setting """
+        """Get the room stat current target temperature setting"""
         return _from_wiser_temp(self._device_type_data.get("SetPoint", 0))
 
     @property
     def current_temperature(self) -> float:
-        """ Get the current temperature measured by the room stat """
+        """Get the current temperature measured by the room stat"""
         return _from_wiser_temp(self._device_type_data.get("MeasuredTemperature", 0))
 
     @property
     def device_lock_enabled(self) -> bool:
-        """ Get or set room stat device lock """
+        """Get or set room stat device lock"""
         return self._device_lock_enabled
 
     @device_lock_enabled.setter
@@ -1325,7 +1388,7 @@ class _WiserRoomStat(_WiserDevice):
 
     @property
     def identify(self) -> bool:
-        """ Get or set if the room stat identify function is enabled """
+        """Get or set if the room stat identify function is enabled"""
         return self._indentify_active
 
     @identify.setter
@@ -1339,7 +1402,7 @@ class _WiserRoomStat(_WiserDevice):
 
 
 class _WiserSmartPlug(_WiserDevice):
-    """ Class representing a Wiser Smart Plug device """
+    """Class representing a Wiser Smart Plug device"""
 
     def __init__(self, data: dict, device_type_data: dict, schedule: _WiserSchedule):
         super().__init__(data)
@@ -1359,11 +1422,18 @@ class _WiserSmartPlug(_WiserDevice):
         return: boolen - true = success, false = failed
         """
         rest = _WiserRestController()
-        return rest._send_command(WISERSMARTPLUG.format(self.id), cmd)
+        result = rest._send_command(WISERSMARTPLUG.format(self.id), cmd)
+        if result:
+            _LOGGER.info(
+                "Wiser smart plug - {} command successful".format(
+                    inspect.stack()[1].function
+                )
+            )
+        return result
 
     @property
     def away_action(self) -> str:
-        """ Get or set the away action of the smart plug (off or no change) """
+        """Get or set the away action of the smart plug (off or no change)"""
         return self._away_action
 
     @away_action.setter
@@ -1374,17 +1444,17 @@ class _WiserSmartPlug(_WiserDevice):
 
     @property
     def control_source(self) -> str:
-        """ Get the current control source of the smart plug """
+        """Get the current control source of the smart plug"""
         return self._device_type_data.get("ControlSource", TEXT_UNKNOWN)
 
     @property
     def manual_state(self) -> str:
-        """ Get the current manual mode setting of the smart plug """
+        """Get the current manual mode setting of the smart plug"""
         return self._device_type_data.get("ManualState", TEXT_UNKNOWN)
 
     @property
     def mode(self) -> str:
-        """ Get or set the current mode of the smart plug (Manual or Auto) """
+        """Get or set the current mode of the smart plug (Manual or Auto)"""
         return self._mode
 
     @mode.setter
@@ -1397,7 +1467,7 @@ class _WiserSmartPlug(_WiserDevice):
 
     @property
     def name(self) -> str:
-        """ Get or set the name of the smart plug """
+        """Get or set the name of the smart plug"""
         return self._name
 
     @name.setter
@@ -1407,17 +1477,22 @@ class _WiserSmartPlug(_WiserDevice):
 
     @property
     def is_on(self) -> bool:
-        """ Get if the smart plug is on """
+        """Get if the smart plug is on"""
         return True if self._output_state == TEXT_ON else False
 
     @property
+    def room_id(self) -> int:
+        """Get smart plug room id"""
+        return self._device_type_data.get("RoomId", 0)
+
+    @property
     def schedule(self):
-        """ Get the schedule of the smart plug """
+        """Get the schedule of the smart plug"""
         return self._schedule
 
     @property
     def scheduled_state(self) -> str:
-        """ Get the current scheduled state of the smart plug """
+        """Get the current scheduled state of the smart plug"""
         return self._device_type_data.get("ScheduledState", TEXT_UNKNOWN)
 
     def turn_on(self) -> bool:
@@ -1442,14 +1517,13 @@ class _WiserSmartPlug(_WiserDevice):
 
 
 class _WiserRoom(object):
-    """ Class representing a Wiser Room entity """
+    """Class representing a Wiser Room entity"""
 
     def __init__(self, data: dict, schedule: _WiserSchedule, devices: _WiserDevice):
-
         self._data = data
         self._schedule = schedule
         self._devices = devices
-        self._mode = data.get("Mode")
+        self._mode = WiserModeEnum(data.get("Mode"))
         self._name = data.get("Name")
         self._window_detection_active = data.get("WindowDetectionActive", TEXT_UNKNOWN)
 
@@ -1457,19 +1531,24 @@ class _WiserRoom(object):
         """
         Send control command to the room
         param cmd: json command structure
-        return: boolen - true = success, false = failed
+        return: boolen
         """
         rest = _WiserRestController()
-        return rest._send_command(WISERROOM.format(self.id), cmd)
+        result = rest._send_command(WISERROOM.format(self.id), cmd)
+        if result:
+            _LOGGER.info(
+                "Wiser room - {} command successful".format(inspect.stack()[1].function)
+            )
+        return result
 
     @property
     def boost_end_time(self) -> datetime:
-        """ Get boost end timestamp """
+        """Get boost end timestamp"""
         return datetime.fromtimestamp(self._data.get("OverrideTimeoutUnixTime", 0))
 
     @property
     def boost_time_remaining(self) -> datetime:
-        """ Get boost time remaining """
+        """Get boost time remaining"""
         if self._data.get("OverrideTimeoutUnixTime", 0) > 0:
             now = datetime.now()
             boost_end_time = datetime.fromtimestamp(
@@ -1481,27 +1560,27 @@ class _WiserRoom(object):
 
     @property
     def current_target_temperature(self) -> float:
-        """ Get current target temperature for the room """
+        """Get current target temperature for the room"""
         return _from_wiser_temp(self._data.get("CurrentSetPoint", TEMP_MINIMUM))
 
     @property
     def current_temperature(self) -> float:
-        """ Get current temperature of the room """
+        """Get current temperature of the room"""
         return _from_wiser_temp(self._data.get("CalculatedTemperature", TEMP_MINIMUM))
 
     @property
     def devices(self):
-        """ Get devices associated with the room """
+        """Get devices associated with the room"""
         return self._devices
 
     @property
     def id(self) -> int:
-        """ Get the id of the room """
+        """Get the id of the room"""
         return self._data.get("id")
 
     @property
     def is_boosted(self) -> bool:
-        """ Get if the room temperature is currently boosted """
+        """Get if the room temperature is currently boosted"""
         return (
             True
             if self._data.get("SetpointOrigin", TEXT_UNKNOWN) == "FromBoost"
@@ -1510,38 +1589,39 @@ class _WiserRoom(object):
 
     @property
     def is_heating(self) -> bool:
-        """ Get if the room is currently heating """
+        """Get if the room is currently heating"""
         return (
             True if self._data.get("ControlOutputState", TEXT_OFF) == TEXT_ON else False
         )
 
     @property
     def manual_target_temperature(self) -> float:
-        """ Get current target temperature for manual mode """
+        """Get current target temperature for manual mode"""
         return _from_wiser_temp(self._data.get("ManualSetPoint", TEMP_MINIMUM))
 
     @property
     def mode(self) -> str:
-        """ Get or set current mode for the room (Off, Manual, Auto) """
+        """Get or set current mode for the room (Off, Manual, Auto)"""
         return self._mode
 
     @mode.setter
     def mode(self, mode: WiserModeEnum):
         if mode == WiserModeEnum.off:
             if self._send_command({"Mode": WiserModeEnum.manual.value}):
-                self.current_target_temperature = TEMP_OFF
+                self.set_manual_temperature(TEMP_OFF)
+                self._mode = mode.value
         elif mode == WiserModeEnum.manual:
             if self._send_command({"Mode": mode.value}):
+                self._mode = mode.value
                 if self.current_target_temperature == TEMP_OFF:
-                    self._mode = mode.value
-                    self.set_manual_temperature(self.manual_target_temperature)
+                    self.set_manual_temperature(self.scheduled_target_temperature)
         else:
             if self._send_command({"Mode": mode.value}):
                 self._mode = mode.value
 
     @property
     def name(self) -> str:
-        """ Get or set the name of the room """
+        """Get or set the name of the room"""
         return self._name
 
     @name.setter
@@ -1551,42 +1631,42 @@ class _WiserRoom(object):
 
     @property
     def override_target_temperature(self) -> float:
-        """ Get the override target temperature of the room """
+        """Get the override target temperature of the room"""
         return self._data.get("OverrideSetpoint", 0)
 
     @property
     def override_type(self) -> str:
-        """ Get the current override type for the room """
+        """Get the current override type for the room"""
         return self._data.get("OverrideType", "None")
 
     @property
     def percentage_demand(self) -> int:
-        """ Get the percentage demand of the room """
+        """Get the percentage demand of the room"""
         return self._data.get("PercentageDemand", 0)
 
     @property
     def schedule(self):
-        """ Get the schedule for the room """
+        """Get the schedule for the room"""
         return self._schedule
 
     @property
     def schedule_id(self) -> int:
-        """ Get the schedule id for the room """
+        """Get the schedule id for the room"""
         return self._data.get("ScheduleId")
 
     @property
     def scheduled_target_temperature(self) -> float:
-        """ Get the scheduled target temperature for the room """
+        """Get the scheduled target temperature for the room"""
         return _from_wiser_temp(self._data.get("ScheduledSetPoint", TEMP_MINIMUM))
 
     @property
     def target_temperature_origin(self) -> str:
-        """ Get the origin of the target temperature setting for the room """
+        """Get the origin of the target temperature setting for the room"""
         return self._data.get("SetpointOrigin", TEXT_UNKNOWN)
 
     @property
     def window_detection_active(self) -> bool:
-        """ Get or set if window detection is active """
+        """Get or set if window detection is active"""
         return self._window_detection_active
 
     @window_detection_active.setter
@@ -1641,7 +1721,7 @@ class _WiserRoom(object):
             {
                 "RequestOverride": {
                     "Type": "Manual",
-                    "SetPoint": _to_wiser_temp(_validate_temperature(temp)),
+                    "SetPoint": _to_wiser_temp(temp),
                 }
             }
         )
@@ -1657,7 +1737,7 @@ class _WiserRoom(object):
                 "RequestOverride": {
                     "Type": "Manual",
                     "DurationMinutes": duration,
-                    "SetPoint": _to_wiser_temp(_validate_temperature(temp)),
+                    "SetPoint": _to_wiser_temp(temp),
                 }
             }
         )
@@ -1677,7 +1757,7 @@ class _WiserRoom(object):
         return: boolean
         """
         return self.override_temperature(
-            _from_wiser_temp(self.schedule.next.get("DegreesC"))
+            _from_wiser_temp(self.schedule.next_entry.setting)
         )
 
     def cancel_overrides(self):
@@ -1689,7 +1769,7 @@ class _WiserRoom(object):
 
 
 class _WiserHeating:
-    """ Class representing a Wiser Heating Channel """
+    """Class representing a Wiser Heating Channel"""
 
     def __init__(self, data: dict, rooms: dict):
         self._data = data
@@ -1697,37 +1777,37 @@ class _WiserHeating:
 
     @property
     def demand_on_off_output(self):
-        """ Get the demand output for the heating channel """
+        """Get the demand output for the heating channel"""
         return self._data.get("DemandOnOffOutput", TEXT_UNKNOWN)
 
     @property
     def heating_relay_status(self) -> str:
-        """ Get the state of the heating channel relay """
+        """Get the state of the heating channel relay"""
         return self._data.get("HeatingRelayState", TEXT_UNKNOWN)
 
     @property
     def id(self) -> int:
-        """ Get the id of the heating channel """
+        """Get the id of the heating channel"""
         return self._data.get("id")
 
     @property
     def is_smart_valve_preventing_demand(self) -> bool:
-        """ Get if a smart valve is preventing demand for heating channel """
+        """Get if a smart valve is preventing demand for heating channel"""
         return self._data.get("IsSmartValvePreventingDemand", False)
 
     @property
     def name(self) -> str:
-        """ Get the name of the heating channel """
+        """Get the name of the heating channel"""
         return self._data.get("Name", TEXT_UNKNOWN)
 
     @property
     def percentage_demand(self) -> int:
-        """ Get the percentage demand of the heating channel """
+        """Get the percentage demand of the heating channel"""
         return self._data.get("PercentageDemand", 0)
 
     @property
     def rooms(self):
-        """ Get the rooms attached to this heating channel """
+        """Get the rooms attached to this heating channel"""
         rooms = []
         for room in self._rooms:
             if room.id in self.room_ids:
@@ -1736,12 +1816,12 @@ class _WiserHeating:
 
     @property
     def room_ids(self):
-        """ Get a list of the room ids attached to this heating channel """
+        """Get a list of the room ids attached to this heating channel"""
         return self._data.get("RoomIds", [])
 
 
 class _WiserHotwater:
-    """ Class representing a Wiser Hot Water controller """
+    """Class representing a Wiser Hot Water controller"""
 
     def __init__(self, data: dict, schedule: dict):
         self._data = data
@@ -1755,98 +1835,110 @@ class _WiserHotwater:
         return: boolen - true = success, false = failed
         """
         rest = _WiserRestController()
-        return rest._send_command(WISERHOTWATER.format(self.id), cmd)
+        result = rest._send_command(WISERHOTWATER.format(self.id), cmd)
+        if result:
+            _LOGGER.info(
+                "Wiser hot water - {} command successful".format(
+                    inspect.stack()[1].function
+                )
+            )
+        return result
 
     @property
     def current_control_source(self) -> str:
-        """ Get the current control source for the hot water """
+        """Get the current control source for the hot water"""
         return self._data.get("HotWaterDescription", TEXT_UNKNOWN)
 
     @property
+    def current_state(self) -> str:
+        """Get the current state of the hot water"""
+        return self._data.get("HotWaterRelayState", TEXT_UNKNOWN)
+
+    @property
     def id(self) -> int:
-        """ Get the id of the hot water channel """
+        """Get the id of the hot water channel"""
         return self._data.get("id")
 
     @property
     def is_heating(self) -> bool:
-        """ Get if the hot water is currently heating """
+        """Get if the hot water is currently heating"""
         return True if self._data.get("WaterHeatingState") == TEXT_ON else False
 
     @property
     def is_boosted(self) -> bool:
-        """ Get if the hot water is currently boosted """
+        """Get if the hot water is currently boosted"""
         return True if self._data.get("Override") else False  # TODO: Check this
 
     @property
     def mode(self) -> str:
-        """ Get or set the current hot water mode (Manual or Auto) """
+        """Get or set the current hot water mode (Manual or Auto)"""
         return self._mode
 
     @mode.setter
     def mode(self, mode: WiserModeEnum):
         if mode == WiserModeEnum.off:
             if self._send_command({"Mode": WiserModeEnum.manual.value}):
-                self.set_override_off()
+                self.override_state(WiserHotWaterStateEnum.off)
         else:
             if self._send_command({"Mode": mode.value}):
                 self._mode = mode.value
 
     @property
     def schedule(self):
-        """ Get the hot water schedule """
+        """Get the hot water schedule"""
         return self._schedule
 
-    def set_override_on(self):
+    def schedule_advance(self):
         """
-        Turn on hotwater.  In auto this is until the next scheduled event.  In manual mode this is until changed.
+        Advance hot water schedule to the next scheduled time and state setting
         return: boolean
         """
-        return self._send_command(
-            {"RequestOverride": {"Type": "Manual", "SetPoint": _to_wiser_temp(HW_ON)}}
-        )
+        # TODO: Fix this!
+        if self.schedule.next_entry.setting == WiserHotWaterStateEnum.on.value:
+            return self.override_state(WiserHotWaterStateEnum.on)
+        else:
+            return self.override_state(WiserHotWaterStateEnum.off)
 
-    def set_override_on_for_duration(self, duration: int):
+    def override_state(self, state: WiserHotWaterStateEnum) -> bool:
         """
-        Turn the hot water on for x minutes, overriding the current schedule or manual setting
+        Override hotwater state.  In auto this is until the next scheduled event.  In manual mode this is until changed.
+        return: boolean
+        """
+        if state == WiserHotWaterStateEnum.on:
+            return self._send_command(
+                {"RequestOverride": {"Type": "Manual", "SetPoint": _to_wiser_temp(HW_ON)}}
+            )
+        else:
+            return self._send_command(
+                {"RequestOverride": {"Type": "Manual", "SetPoint": _to_wiser_temp(HW_OFF)}}
+            )
+
+    def override_state_for_duration(self, state: WiserHotWaterStateEnum, duration: int) -> bool:
+        """
+        Override the hot water state for x minutes, overriding the current schedule or manual setting
         param duration: the duration to turn on for in minutes
         return: boolean
         """
-        return self._send_command(
-            {
-                "RequestOverride": {
-                    "Type": "Manual",
-                    "DurationMinutes": duration,
-                    "SetPoint": _to_wiser_temp(HW_ON),
-                    "Originator": "App",
+        if state == WiserHotWaterStateEnum.on:
+            return self._send_command(
+                {
+                    "RequestOverride": {
+                        "Type": "Manual",
+                        "DurationMinutes": duration,
+                        "SetPoint": _to_wiser_temp(HW_ON)
+                    }
                 }
-            }
-        )
-
-    def set_override_off(self):
-        """
-        Turn off hotwater.  In auto this is until the next scheduled event.  In manual mode this is until changed
-        return: boolean
-        """
-        return self._send_command(
-            {"RequestOverride": {"Type": "Manual", "SetPoint": _to_wiser_temp(HW_OFF)}}
-        )
-
-    def set_override_off_for_duration(self, duration: int):
-        """
-        Turn the hot water off for x minutes, overriding the current schedule or manual setting
-        param duration: the duration to turn off for in minutes
-        return: boolean
-        """
-        return self._send_command(
-            {
-                "RequestOverride": {
-                    "Type": "Manual",
-                    "DurationMinutes": duration,
-                    "SetPoint": _to_wiser_temp(HW_OFF),
-                    "Originator": "App",
+            )
+        else:
+            return self._send_command(
+                {
+                    "RequestOverride": {
+                        "Type": "Manual",
+                        "DurationMinutes": duration,
+                        "SetPoint": _to_wiser_temp(HW_OFF)
+                    }
                 }
-            }
-        )
+            )
 
     def cancel_overrides(self):
         """
@@ -1862,7 +1954,7 @@ Support Classess
 
 
 class _WiserNetwork:
-    """ Data structure for network information for a Wiser Hub """
+    """Data structure for network information for a Wiser Hub"""
 
     def __init__(self, data: dict):
         self._data = data
@@ -1871,17 +1963,17 @@ class _WiserNetwork:
 
     @property
     def dhcp_mode(self) -> str:
-        """ Get the current dhcp mode of the hub """
+        """Get the current dhcp mode of the hub"""
         return self._data.get("NetworkInterface", {}).get("DhcpMode", TEXT_UNKNOWN)
 
     @property
     def hostname(self) -> str:
-        """ Get the host name of the hub """
+        """Get the host name of the hub"""
         return self._data.get("NetworkInterface", {}).get("HostName", TEXT_UNKNOWN)
 
     @property
     def ip_address(self) -> str:
-        """ Get the ip address of the hub """
+        """Get the ip address of the hub"""
         if self.dhcp_mode == "Client":
             return self._dhcp_status.get("IPv4Address", TEXT_UNKNOWN)
         else:
@@ -1889,7 +1981,7 @@ class _WiserNetwork:
 
     @property
     def ip_subnet_mask(self) -> str:
-        """ Get the subnet mask of the hub """
+        """Get the subnet mask of the hub"""
         if self.dhcp_mode == "Client":
             return self._dhcp_status.get("IPv4SubnetMask", TEXT_UNKNOWN)
         else:
@@ -1897,7 +1989,7 @@ class _WiserNetwork:
 
     @property
     def ip_gateway(self) -> str:
-        """ Get the default gateway of the hub """
+        """Get the default gateway of the hub"""
         if self.dhcp_mode == "Client":
             return self._dhcp_status.get("IPv4DefaultGateway", TEXT_UNKNOWN)
         else:
@@ -1905,7 +1997,7 @@ class _WiserNetwork:
 
     @property
     def ip_primary_dns(self) -> str:
-        """ Get the primary dns server of the hub """
+        """Get the primary dns server of the hub"""
         if self.dhcp_mode == "Client":
             return self._dhcp_status.get("IPv4PrimaryDNS", TEXT_UNKNOWN)
         else:
@@ -1913,7 +2005,7 @@ class _WiserNetwork:
 
     @property
     def ip_secondary_dns(self) -> str:
-        """ Get the secondary dns server of the hub """
+        """Get the secondary dns server of the hub"""
         if self.dhcp_mode == "Client":
             return self._dhcp_status.get("IPv4SecondaryDNS", TEXT_UNKNOWN)
         else:
@@ -1921,32 +2013,32 @@ class _WiserNetwork:
 
     @property
     def mac_address(self) -> str:
-        """ Get the mac address of the hub wifi interface """
+        """Get the mac address of the hub wifi interface"""
         return self._data.get("MacAddress", TEXT_UNKNOWN)
 
     @property
     def signal_percent(self) -> int:
-        """ Get the wifi signal strength percentage """
+        """Get the wifi signal strength percentage"""
         return min(100, int(2 * (self._data.get("RSSI", {}).get("Current", 0) + 100)))
 
     @property
     def signal_rssi(self) -> int:
-        """ Get the wifi signal rssi value """
+        """Get the wifi signal rssi value"""
         return self._data.get("RSSI", {}).get("Current", 0)
 
     @property
     def security_mode(self) -> str:
-        """ Get the wifi security mode """
+        """Get the wifi security mode"""
         return self._data.get("SecurityMode", TEXT_UNKNOWN)
 
     @property
     def ssid(self) -> str:
-        """ Get the ssid of the wifi network the hub is connected to """
+        """Get the ssid of the wifi network the hub is connected to"""
         return self._data.get("SSID", TEXT_UNKNOWN)
 
 
 class _WiserCloud:
-    """ Data structure for cloud information for a Wiser Hub """
+    """Data structure for cloud information for a Wiser Hub"""
 
     def __init__(self, cloud_status: str, data: dict):
         self._cloud_status = cloud_status
@@ -1954,49 +2046,49 @@ class _WiserCloud:
 
     @property
     def api_host(self) -> str:
-        """ Get the host name of the wiser cloud """
+        """Get the host name of the wiser cloud"""
         return self._data.get("WiserApiHost", TEXT_UNKNOWN)
 
     @property
     def bootstrap_api_host(self) -> str:
-        """ Get the bootstrap host name of the wiser cloud """
+        """Get the bootstrap host name of the wiser cloud"""
         return self._data.get("BootStrapApiHost", TEXT_UNKNOWN)
 
     @property
     def connected_to_cloud(self) -> bool:
-        """ Get the hub connection status to the wiser cloud """
+        """Get the hub connection status to the wiser cloud"""
         return True if self._cloud_status == "Connected" else False
 
     @property
     def detailed_publishing_enabled(self) -> bool:
-        """ Get if detailed published is enabled """
+        """Get if detailed published is enabled"""
         return self._data.get("DetailedPublishing", False)
 
     @property
     def diagnostic_telemetry_enabled(self) -> bool:
-        """ Get if diagnostic telemetry is enabled """
+        """Get if diagnostic telemetry is enabled"""
         return self._data.get("EnableDiagnosticTelemetry", False)
 
     @property
     def environment(self) -> str:
-        """ Get the cloud environment the hub is connected to """
+        """Get the cloud environment the hub is connected to"""
         return self._data.get("Environment", TEXT_UNKNOWN)
 
 
 class _WiserBattery:
-    """ Data structure for battery information for a Wiser device that is powered by batteries """
+    """Data structure for battery information for a Wiser device that is powered by batteries"""
 
     def __init__(self, data: dict):
         self._data = data
 
     @property
     def level(self) -> str:
-        """ Get the descritpion of the battery level """
+        """Get the descritpion of the battery level"""
         return self._data.get("BatteryLevel", "No Battery")
 
     @property
     def percent(self) -> int:
-        """ Get the percent of battery remaining """
+        """Get the percent of battery remaining"""
         if self._data.get("ProductType") == "RoomStat":
             return min(
                 100,
@@ -2024,71 +2116,62 @@ class _WiserBattery:
 
     @property
     def voltage(self) -> float:
-        """ Get the battery voltage """
+        """Get the battery voltage"""
         return self._data.get("BatteryVoltage", 0) / 10
 
 
-class _WiserSignal:
-    """ Data structure for zigbee signal information for a Wiser device """
+class _WiserZwaveSignal:
+    """Data structure for zigbee signal information for a Wiser device"""
 
     def __init__(self, data: dict):
         self._data = data
 
     @property
     def displayed_signal_strength(self) -> str:
-        """ Get the description of signal strength """
+        """Get the description of signal strength"""
         return self._data.get("DisplayedSignalStrength", TEXT_UNKNOWN)
 
     @property
-    def controller_rssi(self) -> int:
-        """ Get the signal rssi (strength) for the controller by the device """
-        return self._data.get("ReceptionOfController", {"Rssi": 0}).get("Rssi")
+    def rssi(self) -> int:
+        """Get the rssi (strength) of the device signal"""
+        if self._data.get("ProductType") == "SmartPlug":
+            return self._data.get("ReceptionOfDevice", {"Rssi": 0}).get("Rssi")
+        else:
+            return self._data.get("ReceptionOfController", {"Rssi": 0}).get("Rssi")
 
     @property
-    def controller_lqi(self) -> int:
-        """ Get the signal lqi (quality) for the controller by the device """
-        return self._data.get("ReceptionOfController", {"Lqi": 0}).get("Lqi")
+    def lqi(self) -> int:
+        """Get the signal lqi (quality) for the device"""
+        if self._data.get("ProductType") == "SmartPlug":
+            return self._data.get("ReceptionOfDevice", {"Lqi": 0}).get("Lqi")
+        else:
+            return self._data.get("ReceptionOfController", {"Lqi": 0}).get("Lqi")
 
     @property
-    def controller_signal_percent(self) -> int:
-        """ Get the signal strength percent for the controller by the device """
-        return min(100, int(2 * (self.controller_rssi + 100)))
-
-    @property
-    def device_rssi(self) -> int:
-        """ Get the signal rssi (strength) for the device by the controller """
-        return self._data.get("ReceptionOfDevice", {"Rssi": 0}).get("Rssi")
-
-    @property
-    def device_lqi(self) -> int:
-        """ Get the signal lqi (quality) for the device by the controller """
-        return self._data.get("ReceptionOfDevice", {"Lqi": 0}).get("Lqi")
-
-    @property
-    def device_signal_percent(self) -> int:
-        """ Get the signal strength percent for the device by the controller """
-        return min(100, int(2 * (self.device_rssi + 100)))
+    def signal_strength(self) -> int:
+        """Get the signal strength percent for the device"""
+        return min(100, int(2 * (self.rssi + 100)))
 
 
 class _WiserGPS:
-    """ Data structure for gps positional information for a Wiser Hub """
+    """Data structure for gps positional information for a Wiser Hub"""
 
     def __init__(self, data: dict):
         self._data = data
 
     @property
     def latitude(self) -> float:
-        """ Get the latitude of the hub """
+        """Get the latitude of the hub"""
         return self._data.get("Latitude")
 
     @property
     def longitude(self) -> float:
-        """ Get the longitude of the hub """
+        """Get the longitude of the hub"""
         return self._data.get("Longitude")
 
 
 class _WiserScheduleNext:
-    """ Data structure for schedule next entry data """
+    """Data structure for schedule next entry data"""
 
     def __init__(self, schedule_type: str, data: dict):
         self._schedule_type = schedule_type
@@ -2096,18 +2179,18 @@ class _WiserScheduleNext:
 
     @property
     def day(self) -> str:
-        """ Get the next entry day of the week """
+        """Get the next entry day of the week"""
         return self._data.get("Day", "")
 
     @property
     def time(self) -> int:
-        """ Get the next entry time """
+        """Get the next entry time"""
         # TODO: convert to time
         return self._data.get("Time", 0)
 
     @property
     def setting(self):
-        """ Get the next entry setting - temp for heating, state for on/off devices """
+        """Get the next entry setting - temp for heating, state for on/off devices"""
         if self._schedule_type == TEXT_HEATING:
             return self._data.get("DegreesC")
         if self._schedule_type == TEXT_ONOFF:
@@ -2138,7 +2221,11 @@ def _to_wiser_temp(temp: float) -> int:
     param temp: The temperature to convert
     return: Integer
     """
-    return int(temp * 10)
+    # Convert to metric if imperial units set
+    if _wiser_api_connection.units == WiserUnitsEmun.imperial:
+        temp = _convert_from_F(temp)
+
+    return int(_validate_temperature(temp) * 10)
 
 
 def _from_wiser_temp(temp: int) -> float:
@@ -2152,4 +2239,26 @@ def _from_wiser_temp(temp: int) -> float:
             temp = TEMP_MINIMUM
         else:
             temp = round(temp / 10, 1)
-    return temp
+    
+        # Convert to imperial if imperial units set
+        if _wiser_api_connection.units == WiserUnitsEmun.imperial:
+            temp = _convert_to_F(temp)
+
+        return temp
+    return None
+
+def _convert_from_F(temp: float) -> float:
+    """
+    Convert F temp to C
+    param temp: temp in F to convert
+    return: float
+    """
+    return round((temp - 32) * 5/9, 1)
+
+def _convert_to_F(temp: float) -> float:
+    """
+    Convert C temp to F
+    param temp: temp in C to convert
+    return: float
+    """
+    return round((temp * 9/5) + 32, 1)
