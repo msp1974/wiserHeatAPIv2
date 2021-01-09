@@ -28,7 +28,7 @@ from time import sleep
 from typing import cast
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
 
-__VERSION__ = "2.0.0"
+__VERSION__ = "0.0.2"
 _LOGGER = logging.getLogger(__name__)
 
 # TODO: Remove this in production!!!!
