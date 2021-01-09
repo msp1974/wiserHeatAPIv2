@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="wiser-heating-api",
-    version="1.0.9",
-    author="Angelo Santagata",
-    author_email="angelosantagata@gmail.com",
-    description="A simple API for accessing data on the Drayton Wiser Heating system",
+    name="wiser-heat-api-v2",
+    version="2.0.0",
+    author="Mark Parker",
+    author_email="msparker@sky.com",
+    description="A simple API for controlling the Drayton Wiser Heating system",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/asantaga/wiserheatingapi",
+    url="https://github.com/msp1974/wiserheatapiv2",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

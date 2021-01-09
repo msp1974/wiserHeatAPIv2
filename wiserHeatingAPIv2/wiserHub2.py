@@ -152,7 +152,7 @@ class WiserAPI:
 
         # Data stores for exposed properties
         self._schedules = []
-        self._hub = None
+        self._system = None
         self._devices = []
         self._smart_valves = []
         self._smart_plugs = []
@@ -220,7 +220,7 @@ class WiserAPI:
 
         # Devices
         self._devices = []
-        self._hub = None
+        self._system = None
         self._smart_valves = []
         self._room_stats = []
         self._smart_plugs = []
@@ -232,7 +232,7 @@ class WiserAPI:
 
                 # Add device to specific device type
                 if device.get("ProductType") == "Controller":
-                    self._hub = _WiserHub(
+                    self._system = _WiserSystem(
                         self._domain_data.get("System"),
                         device,
                         self._network_data,
@@ -340,11 +340,6 @@ class WiserAPI:
         return self._hotwater
 
     @property
-    def hub(self):
-        """Entity of the Wiser Hub"""
-        return self._hub
-
-    @property
     def rooms(self):
         """List of room entities configured on the Wiser Hub"""
         return self._rooms
@@ -368,6 +363,11 @@ class WiserAPI:
     def smart_valves(self):
         """List of smart valve (iTRV) entities connected to the Wiser Hub"""
         return self._smart_valves
+
+    @property
+    def system(self):
+        """Entity of the Wiser Hub"""
+        return self._system
 
     @property
     def units(self) -> WiserUnitsEmun:
@@ -1035,7 +1035,7 @@ class _WiserSchedule(object):
             return False
 
 
-class _WiserHub(object):
+class _WiserSystem(object):
     """Class representing a Wiser Hub device"""
 
     def __init__(
@@ -1059,7 +1059,7 @@ class _WiserHub(object):
         self._timezone_offset = data.get("TimeZoneOffset")
         self._valve_protection_enabled = data.get("ValveProtectionEnabled")
 
-    def _sendCommand(self, cmd: dict) -> bool:
+    def _send_command(self, cmd: dict) -> bool:
         """
         Send system control command to Wiser Hub
         param cmd: json command structure
@@ -1085,7 +1085,7 @@ class _WiserHub(object):
 
     @automatic_daylight_saving_enabled.setter
     def automatic_daylight_saving_enabled(self, enabled: bool):
-        if self._sendCommand({"AutomaticDaylightSaving": str(enabled).lower()}):
+        if self._send_command({"AutomaticDaylightSaving": str(enabled).lower()}):
             self._automatic_daylight_saving = enabled
 
     @property
@@ -1095,7 +1095,7 @@ class _WiserHub(object):
 
     @away_mode_enabled.setter
     def away_mode_enabled(self, enabled: bool):
-        if self._sendCommand({"RequestOverride": {"Type": 2 if enabled else 0}}):
+        if self._send_command({"RequestOverride": {"Type": 2 if enabled else 0}}):
             self._override_type = "Away" if enabled else ""
 
     @property
@@ -1105,7 +1105,7 @@ class _WiserHub(object):
 
     @away_mode_affects_hotwater.setter
     def away_mode_affects_hotwater(self, enabled: bool = False):
-        if self._sendCommand({"AwayModeAffectsHotWater": str(enabled).lower()}):
+        if self._send_command({"AwayModeAffectsHotWater": str(enabled).lower()}):
             self._away_mode_affects_hotwater = enabled
 
     @property
@@ -1116,7 +1116,7 @@ class _WiserHub(object):
     @away_mode_target_temperature.setter
     def away_mode_target_temperature(self, temp: float):
         temp = _to_wiser_temp(temp)
-        if self._sendCommand({"AwayModeSetPointLimit": temp}):
+        if self._send_command({"AwayModeSetPointLimit": temp}):
             self._away_mode_target_temperature = _to_wiser_temp(temp)
 
     @property
@@ -1144,7 +1144,7 @@ class _WiserHub(object):
 
     @comfort_mode_enabled.setter
     def comfort_mode_enabled(self, enabled: bool):
-        if self._sendCommand({"ComfortModeEnabled": enabled}):
+        if self._send_command({"ComfortModeEnabled": enabled}):
             self._comfort_mode_enabled = enabled
 
     @property
@@ -1155,7 +1155,7 @@ class _WiserHub(object):
     @degraded_mode_target_temperature.setter
     def degraded_mode_target_temperature(self, temp: float):
         temp = _to_wiser_temp(temp)
-        if self._sendCommand({"DegradedModeSetpointThreshold": temp}):
+        if self._send_command({"DegradedModeSetpointThreshold": temp}):
             self._degraded_mode_target_temperature = temp
 
     @property
@@ -1165,7 +1165,7 @@ class _WiserHub(object):
 
     @eco_mode_enabled.setter
     def eco_mode_enabled(self, enabled: bool):
-        if self._sendCommand({"EcoModeEnabled": enabled}):
+        if self._send_command({"EcoModeEnabled": enabled}):
             self._eco_mode_enabled = enabled
 
     @property
@@ -1231,7 +1231,7 @@ class _WiserHub(object):
 
     @timezone_offset.setter
     def timezone_offset(self, offset: int):
-        if self._sendCommand({"TimeZoneOffset": offset}):
+        if self._send_command({"TimeZoneOffset": offset}):
             self._timezone_offset = offset
 
     @property
@@ -1250,7 +1250,7 @@ class _WiserHub(object):
         Set the valve protection setting on the wiser hub
         param enabled: turn on or off
         """
-        if self._sendCommand({"ValveProtectionEnabled": enabled}):
+        if self._send_command({"ValveProtectionEnabled": enabled}):
             self._valve_protection_enabled = enabled
 
     def boost_all_rooms(self, inc_temp: float, duration: int) -> bool:
