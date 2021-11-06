@@ -1,4 +1,4 @@
-from wiserHeatingAPI.wiserHub2 import (
+from wiserHeatAPIv2.wiserHub2 import (
     DEFAULT_AWAY_MODE_TEMP,
     DEFAULT_DEGRADED_TEMP,
     WiserAPI,
@@ -20,7 +20,7 @@ import sys
 USE_DISCOVERY = False
 DEBUG = True
 
-TEST_DISCOVERY = False
+TEST_DISCOVERY = True
 TEST_HUB = True
 TEST_ROOMS = True
 TEST_SCHEDULES = True
@@ -116,10 +116,11 @@ if TEST_DISCOVERY:
         raise Exception
     else:
         success("Hub discovery successful")
+        print(hubs[0]["hostname"])
 
 
 try:
-    clear_screen()
+    #clear_screen()
     test_start("Hub Connection and Data Reading")
     # Connect to hub with hostname
 
