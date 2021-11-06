@@ -11,7 +11,7 @@ The API functionality provides the following functionality to control the wiser 
 ## 1. Find your HeatHub Secret key
 Reference https://it.knightnet.org.uk/kb/nr-qa/drayton-wiser-heating-control/#controlling-the-system
 1. Press the setup button on your HeatHub, the light will start flashing
-Look for the Wi-Fi network (SSID) called **‘WiserHeatXXX’** where XXX is random
+Look for the Wi-Fi network (SSID) called **‘WiserHeatXXXXXX’** where XXXXXX is last 6 digits of the MAC address
 2. Connect to the network from a Windows/Linux/Mac/Android/iPhone machine
 3. Execute the secret url :-)
    * Open a browser to url `http://192.168.8.1/secret`

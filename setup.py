@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="wiserHeatAPIv2", # Replace with your own username
-    version="0.0.2",
+    version="0.0.3",
     author="Mark Parker",
     author_email="msparker@sky.com",
     description="An API for controlling the Drayton Wiser Heating system",
@@ -20,5 +20,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.9',
 )
