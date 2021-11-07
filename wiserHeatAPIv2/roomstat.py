@@ -1,21 +1,23 @@
-from .device import _WiserDevice, _WiserBattery
-from .helpers import _to_wiser_temp, _from_wiser_temp
-from .rest_controller import _WiserRestController
-from .const import (
+from . import _LOGGER
+
+from battery import _WiserBattery
+from device import _WiserDevice
+from helpers import _to_wiser_temp, _from_wiser_temp
+from rest_controller import _WiserRestController
+
+from const import (
     WISERROOMSTAT
 )
 
 import inspect
-import logging
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class _WiserRoomStat(_WiserDevice):
     """Class representing a Wiser Room Stat device"""
 
-    def __init__(self, data, device_type_data):
+    def __init__(self, wiser_rest_controller:_WiserRestController, data, device_type_data):
         super().__init__(data)
+        self._wiser_rest_controller = wiser_rest_controller
         self._data = data
         self._device_type_data = device_type_data
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
@@ -27,8 +29,7 @@ class _WiserRoomStat(_WiserDevice):
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        rest = _WiserRestController()
-        result = rest._send_command(WISERROOMSTAT.format(self.id), cmd)
+        result = self._wiser_rest_controller._send_command(WISERROOMSTAT.format(self.id), cmd)
         if result:
             _LOGGER.info(
                 "Wiser room stat - {} command successful".format(

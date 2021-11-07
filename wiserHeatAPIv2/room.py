@@ -1,9 +1,11 @@
-from .device import _WiserDevice
-from .helpers import _to_wiser_temp, _from_wiser_temp
-from .schedule import _WiserSchedule
-from .rest_controller import _WiserRestController
+from . import _LOGGER
 
-from .const import (
+from device import _WiserDevice
+from helpers import _to_wiser_temp, _from_wiser_temp
+from schedule import _WiserSchedule
+from rest_controller import _WiserRestController
+
+from const import (
     MAX_BOOST_INCREASE,
     TEMP_MINIMUM,
     TEMP_MAXIMUM,
@@ -17,14 +19,13 @@ from .const import (
 
 from datetime import datetime, timezone
 import inspect
-import logging
 
-_LOGGER = logging.getLogger(__name__)
 
 class _WiserRoom(object):
     """Class representing a Wiser Room entity"""
 
-    def __init__(self, data: dict, schedule: _WiserSchedule, devices: _WiserDevice):
+    def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, schedule: _WiserSchedule, devices: _WiserDevice):
+        self._wiser_rest_controller = wiser_rest_controller
         self._data = data
         self._schedule = schedule
         self._devices = devices
@@ -38,8 +39,7 @@ class _WiserRoom(object):
         param cmd: json command structure
         return: boolen
         """
-        rest = _WiserRestController()
-        result = rest._send_command(WISERROOM.format(self.id), cmd)
+        result = self._wiser_rest_controller._send_command(WISERROOM.format(self.id), cmd)
         if result:
             _LOGGER.info(
                 "Wiser room - {} command successful - {}".format(inspect.stack()[1].function, result)

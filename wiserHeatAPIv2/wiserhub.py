@@ -14,7 +14,9 @@ This API allows you to get information from and control your wiserhub.
 
 # TODO: Keep objects and update instead of recreating on hub update
 # TODO: Update entity values after commend issued to get current values
-from .const import (
+from . import _LOGGER
+
+from const import (
     DEFAULT_AWAY_MODE_TEMP,
     DEFAULT_DEGRADED_TEMP,
     HW_OFF,
@@ -30,26 +32,25 @@ from .const import (
     WISERHUBNETWORK,
     WISERHUBSCHEDULES
 )
-from .device import _WiserDevice
-from .discovery import WiserDiscovery
-from .exceptions import (
+from device import _WiserDevice
+from discovery import WiserDiscovery
+from exceptions import (
     WiserHubAuthenticationError,
     WiserHubConnectionError,
     WiserHubRESTError
 )
-from .heating import _WiserHeating
-from .hot_water import _WiserHotwater
-from .rest_controller import _WiserRestController, _WiserConnection
-from .room import _WiserRoom
-from .roomstat import _WiserRoomStat
-from .schedule import _WiserSchedule
-from .smart_plug import _WiserSmartPlug
-from .smart_valve import _WiserSmartValve
-from .system import _WiserSystem
+from heating import _WiserHeating
+from hot_water import _WiserHotwater
+from rest_controller import _WiserRestController, _WiserConnection
+from room import _WiserRoom
+from roomstat import _WiserRoomStat
+from schedule import _WiserSchedule
+from smartplug import _WiserSmartPlug
+from smartvalve import _WiserSmartValve
+from system import _WiserSystem
 import logging
 
-__VERSION__ = "0.0.2"
-_LOGGER = logging.getLogger(__name__)
+__VERSION__ = "0.1.0"
 
 
 class WiserAPI:
@@ -60,6 +61,7 @@ class WiserAPI:
         
         # Connection variables
         self._wiser_api_connection = _WiserConnection()
+        self._wiser_rest_controller = {}
         
         # Main data stores
         self._domain_data = {}
@@ -120,13 +122,13 @@ class WiserAPI:
     ):
         """Read all data from hub and populate objects"""
         # Read hub data endpoints
-        hub_data = _WiserRestController(self._wiser_api_connection)
+        self._wiser_rest_controller = _WiserRestController(self._wiser_api_connection)
         if domain:
-            self._domain_data = hub_data._getHubData(WISERHUBDOMAIN)
+            self._domain_data = self._wiser_rest_controller._get_hub_data(WISERHUBDOMAIN)
         if network:
-            self._network_data = hub_data._getHubData(WISERHUBNETWORK)
+            self._network_data = self._wiser_rest_controller._get_hub_data(WISERHUBNETWORK)
         if schedule:
-            self._schedule_data = hub_data._getHubData(WISERHUBSCHEDULES)
+            self._schedule_data = self._wiser_rest_controller._get_hub_data(WISERHUBSCHEDULES)
 
         # Schedules
         self._schedules = []

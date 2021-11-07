@@ -1,9 +1,11 @@
+from . import _LOGGER
 
-from .device import _WiserDevice, _WiserBattery
-from .helpers import _to_wiser_temp, _from_wiser_temp
-from .rest_controller import _WiserRestController
-from .schedule import _WiserSchedule
-from .const import (
+from device import _WiserDevice
+from helpers import _to_wiser_temp, _from_wiser_temp
+from rest_controller import _WiserRestController
+from schedule import _WiserSchedule
+
+from const import (
     WISERSMARTPLUG,
     TEXT_UNKNOWN,
     TEXT_OFF,
@@ -13,15 +15,13 @@ from .const import (
 )
 
 import inspect
-import logging
-
-_LOGGER = logging.getLogger(__name__)
 
 class _WiserSmartPlug(_WiserDevice):
     """Class representing a Wiser Smart Plug device"""
-
-    def __init__(self, data: dict, device_type_data: dict, schedule: _WiserSchedule):
+    
+    def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
         super().__init__(data)
+        self._wiser_rest_controller = wiser_rest_controller
         self._data = data
         self._device_type_data = device_type_data
         self._schedule = schedule
@@ -37,8 +37,7 @@ class _WiserSmartPlug(_WiserDevice):
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        rest = _WiserRestController()
-        result = rest._send_command(WISERSMARTPLUG.format(self.id), cmd)
+        result = self._wiser_rest_controller._send_command(WISERSMARTPLUG.format(self.id), cmd)
         if result:
             _LOGGER.info(
                 "Wiser smart plug - {} command successful".format(

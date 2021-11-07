@@ -1,9 +1,8 @@
-import logging
+from . import _LOGGER
+
 from time import sleep
 from typing import cast
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
-
-_LOGGER = logging.getLogger(__name__)
 
 class WiserDiscovery:
     """

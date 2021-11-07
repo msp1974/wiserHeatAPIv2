@@ -1,6 +1,9 @@
-from .helpers import _to_wiser_temp, _from_wiser_temp
-from .rest_controller import _WiserRestController
-from .const import (
+from . import _LOGGER
+
+from helpers import _to_wiser_temp, _from_wiser_temp
+from rest_controller import _WiserRestController
+
+from const import (
     TEXT_ON,
     TEXT_UNKNOWN,
     MAX_BOOST_INCREASE,
@@ -9,9 +12,7 @@ from .const import (
 
 from datetime import datetime
 import inspect
-import logging
 
-_LOGGER = logging.getLogger(__name__)
 class _WiserSystem(object):
     """Class representing a Wiser Hub device"""
 

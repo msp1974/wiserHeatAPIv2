@@ -1,7 +1,9 @@
-import inspect
-import logging
-from .rest_controller import _WiserRestController
-from .const import (
+from . import _LOGGER
+
+from helpers import _to_wiser_temp
+from rest_controller import _WiserRestController
+
+from const import (
     HW_ON,
     HW_OFF,
     TEXT_ON,
@@ -10,16 +12,15 @@ from .const import (
     WiserModeEnum,
     WiserHotWaterStateEnum
 )
-from .helpers import (
-    _to_wiser_temp
-)
 
-_LOGGER = logging.getLogger(__name__)
+import inspect
+
 
 class _WiserHotwater:
     """Class representing a Wiser Hot Water controller"""
 
-    def __init__(self, data: dict, schedule: dict):
+    def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, schedule: dict):
+        self._wiser_rest_controller = wiser_rest_controller
         self._data = data
         self._schedule = schedule
         self._mode = data.get("Mode")
@@ -30,8 +31,7 @@ class _WiserHotwater:
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        rest = _WiserRestController()
-        result = rest._send_command(WISERHOTWATER.format(self.id), cmd)
+        result = self._wiser_rest_controller._send_command(WISERHOTWATER.format(self.id), cmd)
         if result:
             _LOGGER.info(
                 "Wiser hot water - {} command successful".format(

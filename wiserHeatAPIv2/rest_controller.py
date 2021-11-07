@@ -1,18 +1,18 @@
-from .const import (
+from . import _LOGGER
+
+from const import (
+    REST_TIMEOUT,
     WISERHUBDOMAIN,
-    WiserUnitsEnum,
-    REST_TIMEOUT
+    WiserUnitsEnum
 )
 
-from .exceptions import (
+from exceptions import (
     WiserHubConnectionError,
     WiserHubAuthenticationError,
     WiserHubRESTError
 )
-import logging
-import requests
 
-_LOGGER = logging.getLogger(__name__)
+import requests
 
 # Connection info class
 class _WiserConnection:
@@ -26,31 +26,31 @@ class _WiserRestController:
     """
     Class to handle getting data from and sending commands to a wiser hub
     """
-    def __init__(self, wiser_api_connection:_WiserConnection):
-        self.wiser_api_connection = wiser_api_connection
+    def __init__(self, wiser_connection:_WiserConnection):
+        self._wiser_connection = wiser_connection
 
 
-    def _getHeaders(self):
+    def _get_headers(self):
         """
         Define headers for wiser hub api calls
         return: json object
         """
         return {
-            "SECRET": self.wiser_api_connection.secret,
+            "SECRET": self._wiser_connection.secret,
             "Content-Type": "application/json;charset=UTF-8",
         }
 
-    def _getHubData(self, url: str):
+    def _get_hub_data(self, url: str):
         """
         Read data from hub and raise errors if fails
         param url: url of hub rest api endpoint
         return: json object
         """
-        url = url.format(self.wiser_api_connection.host)
+        url = url.format(self._wiser_connection.host)
         try:
             response = requests.get(
                 url,
-                headers=self._getHeaders(),
+                headers=self._get_headers(),
                 timeout=REST_TIMEOUT,
             )
             response.raise_for_status()
@@ -96,7 +96,7 @@ class _WiserRestController:
         try:
             response = requests.patch(
                 url=url,
-                headers=self._getHeaders(),
+                headers=self._get_headers(),
                 json=patch_data,
                 timeout=REST_TIMEOUT,
             )
@@ -141,7 +141,7 @@ class _WiserRestController:
         param patchData: json object containing command and values to set
         return: boolean
         """
-        url = WISERHUBDOMAIN.format(self.wiser_api_connection.host) + url
+        url = WISERHUBDOMAIN.format(self._wiser_connection.host) + url
         _LOGGER.info(
             "Sending command to url: {} with parameters {}".format(url, command_data)
         )
@@ -154,7 +154,7 @@ class _WiserRestController:
         param patchData: json object containing command and values to set
         return: boolean
         """
-        url = url.format(self.wiser_api_connection.host)
+        url = url.format(self._wiser_connection.host)
         _LOGGER.debug(
             "Sending schedule to url: {} with data {}".format(url, schedule_data)
         )

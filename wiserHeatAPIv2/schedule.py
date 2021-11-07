@@ -1,4 +1,6 @@
-from .const import (
+from . import _LOGGER
+
+from const import (
     WEEKDAYS,
     WEEKENDS,
     SPECIAL_DAYS,
@@ -17,9 +19,9 @@ from .const import (
     TEMP_MINIMUM,
     WISERHUBSCHEDULES
 )
-from .rest_controller import _WiserRestController
+from rest_controller import _WiserRestController
 
-from .helpers import (
+from helpers import (
     _to_wiser_temp,
     _from_wiser_temp
 )
@@ -27,15 +29,13 @@ from .helpers import (
 from datetime import datetime
 import inspect
 import json
-import logging
 from ruamel.yaml import YAML
-
-_LOGGER = logging.getLogger(__name__)
 
 class _WiserSchedule(object):
     """Class representing a wiser Schedule"""
 
-    def __init__(self, schedule_type: str, schedule_data: dict):
+    def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict):
+        self._wiser_rest_controller = wiser_rest_controller
         self._type = schedule_type
         self._schedule_data = schedule_data
 
@@ -170,8 +170,7 @@ class _WiserSchedule(object):
         return: boolen - true = success, false = failed
         """
         try:
-            rest = _WiserRestController()
-            result = rest._send_schedule(
+            result = self._wiser_rest_controller._send_schedule(
                 WISERHUBSCHEDULES
                 + "{}/{}".format(self._type, str(id if id != 0 else self.id)),
                 schedule_data,
