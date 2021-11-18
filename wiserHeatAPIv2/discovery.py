@@ -4,7 +4,7 @@ from time import sleep
 from typing import cast
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
 
-class WiserDiscovery:
+class WiserDiscovery(object):
     """
     Class to handle mDns discovery of a wiser hub on local network
     Use discover_hub() to return list of mDns responses.

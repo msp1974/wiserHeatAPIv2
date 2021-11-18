@@ -1,28 +1,36 @@
 from . import _LOGGER
 
-from const import (
+from .const import (
     REST_TIMEOUT,
     WISERHUBDOMAIN,
+    WISERHUBNETWORK,
+    WISERHUBSCHEDULES,
     WiserUnitsEnum
 )
 
-from exceptions import (
+from .exceptions import (
     WiserHubConnectionError,
     WiserHubAuthenticationError,
+    WiserHubRESTError
+)
+
+from .exceptions import (
+    WiserHubAuthenticationError,
+    WiserHubConnectionError,
     WiserHubRESTError
 )
 
 import requests
 
 # Connection info class
-class _WiserConnection:
+class _WiserConnection(object):
     def __init(self):
         self.host = None
         self.secret = None
-        self.hub_name = None
         self.units = WiserUnitsEnum.metric
 
-class _WiserRestController:
+ 
+class _WiserRestController(object):
     """
     Class to handle getting data from and sending commands to a wiser hub
     """
@@ -145,7 +153,10 @@ class _WiserRestController:
         _LOGGER.info(
             "Sending command to url: {} with parameters {}".format(url, command_data)
         )
-        return self._patch_hub_data(url, command_data)
+        
+        if self._patch_hub_data(url, command_data):
+            return True
+
 
     def _send_schedule(self, url: str, schedule_data: dict):
         """
@@ -159,3 +170,6 @@ class _WiserRestController:
             "Sending schedule to url: {} with data {}".format(url, schedule_data)
         )
         return self._patch_hub_data(url, schedule_data)
+
+
+    

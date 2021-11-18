@@ -1,29 +1,39 @@
 from . import _LOGGER
 
-from helpers import _to_wiser_temp
-from rest_controller import _WiserRestController
+from .helpers import _WiserTemperatureFunctions as tf
+from .rest_controller import _WiserRestController
+from .schedule import _WiserSchedule
 
-from const import (
-    HW_ON,
-    HW_OFF,
+from .const import (
+    TEMP_HW_ON,
+    TEMP_HW_OFF,
+    TEXT_AUTO,
+    TEXT_MANUAL,
+    TEXT_OFF,
     TEXT_ON,
     TEXT_UNKNOWN, 
     WISERHOTWATER,
-    WiserModeEnum,
-    WiserHotWaterStateEnum
+    WiserHotWaterModeEnum,
 )
 
 import inspect
 
 
-class _WiserHotwater:
+class _WiserHotwater(object):
     """Class representing a Wiser Hot Water controller"""
 
-    def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, schedule: dict):
+    def __init__(self, wiser_rest_controller:_WiserRestController, hw_data: dict, schedule: dict):
         self._wiser_rest_controller = wiser_rest_controller
-        self._data = data
+        self._data = hw_data
         self._schedule = schedule
-        self._mode = data.get("Mode")
+        self._mode = self._effective_hotwater_mode(self._data.get("Mode",{}), self.current_state)
+
+    def _effective_hotwater_mode(self, mode: str, state: str) -> WiserHotWaterModeEnum:
+        if mode == TEXT_MANUAL and state == TEXT_OFF:
+            return WiserHotWaterModeEnum.off
+        if mode == TEXT_MANUAL and state == TEXT_ON:
+            return WiserHotWaterModeEnum.on
+        return WiserHotWaterModeEnum.auto
 
     def _send_command(self, cmd: dict):
         """
@@ -56,31 +66,39 @@ class _WiserHotwater:
         return self._data.get("id")
 
     @property
+    def is_away_mode(self) -> bool:
+        return True if self._data.get("HotWaterDescription") == "FromAwayMode" else False
+
+    @property
+    def is_boosted(self) -> bool:
+        """Get if the hot water is currently boosted"""
+        return True if self._data.get("OverrideTimeoutUnixTime", None) else False
+
+    @property
     def is_heating(self) -> bool:
         """Get if the hot water is currently heating"""
         return True if self._data.get("WaterHeatingState") == TEXT_ON else False
 
     @property
-    def is_boosted(self) -> bool:
-        """Get if the hot water is currently boosted"""
-        return True if self._data.get("Override") else False  # TODO: Check this
-
-    @property
-    def mode(self) -> str:
+    def mode(self) -> WiserHotWaterModeEnum:
         """Get or set the current hot water mode (Manual or Auto)"""
         return self._mode
 
     @mode.setter
-    def mode(self, mode: WiserModeEnum):
-        if mode == WiserModeEnum.off:
-            if self._send_command({"Mode": WiserModeEnum.manual.value}):
-                self.override_state(WiserHotWaterStateEnum.off)
-        else:
-            if self._send_command({"Mode": mode.value}):
-                self._mode = mode.value
+    def mode(self, mode: WiserHotWaterModeEnum):
+        if mode == WiserHotWaterModeEnum.off:
+            if self._send_command({"Mode": TEXT_MANUAL}):
+                self.override_state(WiserHotWaterModeEnum.off)
+        elif mode == WiserHotWaterModeEnum.on:
+            if self._send_command({"Mode": TEXT_MANUAL}):
+                self.override_state(WiserHotWaterModeEnum.on)
+        elif mode == WiserHotWaterModeEnum.auto:
+            if self._send_command({"Mode": TEXT_AUTO}):
+                self.cancel_overrides()
+        self._mode = mode
 
     @property
-    def schedule(self):
+    def schedule(self) -> _WiserSchedule:
         """Get the hot water schedule"""
         return self._schedule
 
@@ -90,38 +108,46 @@ class _WiserHotwater:
         return: boolean
         """
         # TODO: Fix this!
-        if self.schedule.next_entry.setting == WiserHotWaterStateEnum.on.value:
-            return self.override_state(WiserHotWaterStateEnum.on)
+        if self.schedule.next_entry.setting == WiserHotWaterModeEnum.on.value:
+            return self.override_state(WiserHotWaterModeEnum.on)
         else:
-            return self.override_state(WiserHotWaterStateEnum.off)
+            return self.override_state(WiserHotWaterModeEnum.off)
 
-    def override_state(self, state: WiserHotWaterStateEnum) -> bool:
+    def override_state(self, state: WiserHotWaterModeEnum) -> bool:
         """
         Override hotwater state.  In auto this is until the next scheduled event.  In manual mode this is until changed.
         return: boolean
         """
-        if state == WiserHotWaterStateEnum.on:
+        if state == WiserHotWaterModeEnum.on:
             return self._send_command(
-                {"RequestOverride": {"Type": "Manual", "SetPoint": _to_wiser_temp(HW_ON)}}
+                {"RequestOverride": {"Type": "Manual", "SetPoint": TEMP_HW_ON * 10}}
             )
         else:
             return self._send_command(
-                {"RequestOverride": {"Type": "Manual", "SetPoint": _to_wiser_temp(HW_OFF)}}
+                {"RequestOverride": {"Type": "Manual", "SetPoint": TEMP_HW_OFF * 10}}
             )
 
-    def override_state_for_duration(self, state: WiserHotWaterStateEnum, duration: int) -> bool:
+    def boost(self, duration: int) -> bool:
+        """
+        Turn the hot water on for x minutes, overriding the current schedule or manual setting
+        param duration: the duration to turn on for in minutes
+        return: boolean
+        """
+        return self.override_state_for_duration(WiserHotWaterModeEnum.on, duration)
+
+    def override_state_for_duration(self, state: WiserHotWaterModeEnum, duration: int) -> bool:
         """
         Override the hot water state for x minutes, overriding the current schedule or manual setting
         param duration: the duration to turn on for in minutes
         return: boolean
         """
-        if state == WiserHotWaterStateEnum.on:
+        if state == WiserHotWaterModeEnum.on:
             return self._send_command(
                 {
                     "RequestOverride": {
                         "Type": "Manual",
                         "DurationMinutes": duration,
-                        "SetPoint": _to_wiser_temp(HW_ON)
+                        "SetPoint": tf._to_wiser_temp(TEMP_HW_ON)
                     }
                 }
             )
@@ -131,7 +157,7 @@ class _WiserHotwater:
                     "RequestOverride": {
                         "Type": "Manual",
                         "DurationMinutes": duration,
-                        "SetPoint": _to_wiser_temp(HW_OFF)
+                        "SetPoint": tf._to_wiser_temp(TEMP_HW_OFF)
                     }
                 }
             )

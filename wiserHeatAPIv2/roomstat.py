@@ -1,15 +1,40 @@
 from . import _LOGGER
 
-from battery import _WiserBattery
-from device import _WiserDevice
-from helpers import _to_wiser_temp, _from_wiser_temp
-from rest_controller import _WiserRestController
+from .device import _WiserDevice
+from .helpers import _WiserBattery, _WiserTemperatureFunctions as tf
+from .rest_controller import _WiserRestController
 
-from const import (
+from .const import (
     WISERROOMSTAT
 )
 
 import inspect
+
+class _WiserRoomStatCollection(object):
+    """Class holding all wiser room stats"""
+
+    def __init__(self):
+        self._roomstats = []
+
+    @property
+    def all(self) -> dict:
+        return list(self._roomstats)
+
+    @property
+    def count(self) -> int:
+        return len(self.all)
+
+    # Roomstats
+    def get_by_id(self, id: int):
+        """
+        Gets a RoomStat object from the RoomStats id
+        param id: id of room stat
+        return: _WiserRoomStat object
+        """
+        for roomstat in self.all:
+            if roomstat.id == id:
+                return roomstat
+        return None
 
 
 class _WiserRoomStat(_WiserDevice):
@@ -18,7 +43,6 @@ class _WiserRoomStat(_WiserDevice):
     def __init__(self, wiser_rest_controller:_WiserRestController, data, device_type_data):
         super().__init__(data)
         self._wiser_rest_controller = wiser_rest_controller
-        self._data = data
         self._device_type_data = device_type_data
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._indentify_active = data.get("IdentifyActive", False)
@@ -51,12 +75,12 @@ class _WiserRoomStat(_WiserDevice):
     @property
     def current_target_temperature(self) -> float:
         """Get the room stat current target temperature setting"""
-        return _from_wiser_temp(self._device_type_data.get("SetPoint", 0))
+        return tf._from_wiser_temp(self._device_type_data.get("SetPoint", 0))
 
     @property
     def current_temperature(self) -> float:
         """Get the current temperature measured by the room stat"""
-        return _from_wiser_temp(self._device_type_data.get("MeasuredTemperature", 0))
+        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature", 0))
 
     @property
     def device_lock_enabled(self) -> bool:

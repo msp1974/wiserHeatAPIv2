@@ -1,19 +1,21 @@
 from . import _LOGGER
 
-from device import _WiserDevice
-from helpers import _to_wiser_temp, _from_wiser_temp
-from schedule import _WiserSchedule
-from rest_controller import _WiserRestController
+from .devices import _WiserDeviceCollection
+from .device import _WiserDevice
+from .helpers import _WiserTemperatureFunctions as tf
+from .schedule import _WiserSchedule, _WiserScheduleCollection
+from .rest_controller import _WiserRestController
 
-from const import (
+from .const import (
     MAX_BOOST_INCREASE,
     TEMP_MINIMUM,
     TEMP_MAXIMUM,
     TEMP_OFF,
+    TEXT_MANUAL,
     TEXT_OFF,
     TEXT_ON,
     TEXT_UNKNOWN,
-    WiserModeEnum,
+    WiserHeatingModeEnum,
     WISERROOM
 )
 
@@ -21,17 +23,135 @@ from datetime import datetime, timezone
 import inspect
 
 
+class _WiserRoomCollection(object):
+    """Class holding all wiser room objects"""
+
+    def __init__(
+        self, wiser_rest_controller: _WiserRestController, room_data: dict,
+        schedules: _WiserScheduleCollection, devices: _WiserDeviceCollection
+    ):
+
+        self._wiser_rest_controller = wiser_rest_controller
+        self._room_data = room_data
+        self._schedules = schedules.all
+        self._devices = devices
+        self._rooms = []
+
+        self._build()
+
+    def _build(self):
+        # Add room objects
+        #TODO: Make list of device id and also list of iTRVs, Roomstats and Smartplugs
+        for room in self._room_data:
+            schedule = [
+                schedule
+                for schedule in self._schedules
+                if schedule.id == room.get("ScheduleId")
+            ]
+            devices = [
+                device
+                for device in self._devices.all
+                if (
+                    device.id in room.get("SmartValveIds", ["-1"])
+                    or device.id == room.get("RoomStatId", "-1")
+                    or device.id
+                    in [
+                        smartplug.id
+                        for smartplug in self._devices._smartplugs_collection.all
+                        if smartplug.room_id == room.get("id", 0)
+                    ]
+                )
+            ]
+            self._rooms.append(
+                _WiserRoom(
+                    self._wiser_rest_controller,
+                    room,
+                    schedule[0] if len(schedule) > 0 else None,
+                    devices,
+                )
+            )
+
+
+    @property
+    def all(self):
+        return self._rooms
+
+    @property
+    def count(self) -> int:
+        return len(self._rooms)
+
+    def add(self, name):
+        # call domain/room with post and name param
+        raise NotImplemented
+
+    def delete(self, id: int):
+        # call room/id with delete
+        raise NotImplemented
+
+    def get_by_id(self, id: int):
+        """
+        Gets a room object for the room by id of room
+        param id: the id of the room
+        return: _WiserRoom object
+        """
+        try:
+            return [room for room in self._rooms if room.id == id][0]
+        except IndexError:
+            return None
+
+    def get_by_name(self, name: str):
+        """
+        Gets a room object for the room by name of room
+        param name: the name of the room
+        return: _WiserRoom object
+        """
+        try:
+            return [room for room in self._rooms if room.name.lower() == name.lower()][0]
+        except IndexError:
+            return None
+
+    def get_by_schedule_id(self, schedule_id: int):
+        """
+        Gets a room object for the room a schedule id belongs to
+        param schedule_id: the id of the schedule
+        return: _WiserRoom object
+        """
+        return [room for room in self._rooms if room.schedule_id == id][0]
+
+    def get_by_device_id(self, device_id: int):
+        """
+        Gets a room object for the room a device id belongs to
+        param device_id: the id of the device
+        return: _WiserRoom object
+        """
+        for room in self._rooms:
+            for device in room.devices:
+                if device.id == device_id:
+                    return room
+        return None
+
+    
 class _WiserRoom(object):
     """Class representing a Wiser Room entity"""
 
-    def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, schedule: _WiserSchedule, devices: _WiserDevice):
+    def __init__(self, wiser_rest_controller:_WiserRestController, room: dict, schedule: _WiserSchedule, devices: list):
         self._wiser_rest_controller = wiser_rest_controller
-        self._data = data
+        self._data = room
         self._schedule = schedule
         self._devices = devices
-        self._mode = WiserModeEnum(data.get("Mode"))
-        self._name = data.get("Name")
-        self._window_detection_active = data.get("WindowDetectionActive", TEXT_UNKNOWN)
+        self._mode = self._effective_heating_mode(
+            self._data.get("Mode"), 
+            self.current_target_temperature
+        )
+        self._name = room.get("Name")
+        self._window_detection_active = room.get("WindowDetectionActive", TEXT_UNKNOWN)
+
+    def _effective_heating_mode(self, mode: str, temp: float) -> WiserHeatingModeEnum:
+        if mode == WiserHeatingModeEnum.manual.value and temp == TEMP_OFF:
+            return WiserHeatingModeEnum.off
+        elif mode == WiserHeatingModeEnum.manual.value:
+            return WiserHeatingModeEnum.manual
+        return WiserHeatingModeEnum.auto
 
     def _send_command(self, cmd: dict):
         """
@@ -66,12 +186,20 @@ class _WiserRoom(object):
     @property
     def current_target_temperature(self) -> float:
         """Get current target temperature for the room"""
-        return _from_wiser_temp(self._data.get("CurrentSetPoint", TEMP_MINIMUM))
+        return tf._from_wiser_temp(self._data.get("CurrentSetPoint", TEMP_MINIMUM))
 
     @property
     def current_temperature(self) -> float:
         """Get current temperature of the room"""
-        return _from_wiser_temp(self._data.get("CalculatedTemperature", TEMP_MINIMUM))
+        return tf._from_wiser_temp(self._data.get("CalculatedTemperature", TEMP_MINIMUM))
+
+    @property
+    def current_humidity(self):
+        """Get current humidity of the room if room has a roomstat"""
+        for device in self.devices:
+            if hasattr(device, "current_humidity"):
+                return device.current_humidity
+        return None
 
     @property
     def devices(self):
@@ -89,11 +217,20 @@ class _WiserRoom(object):
         return self._data.get("id")
 
     @property
+    def is_away_mode(self) -> bool:
+        """Get if the room temperature is currently set by away mode"""
+        return (
+            True
+            if "Away" in self._data.get("SetpointOrigin", self._data.get("SetPointOrigin",TEXT_UNKNOWN))
+            else False
+        )
+
+    @property
     def is_boosted(self) -> bool:
         """Get if the room temperature is currently boosted"""
         return (
             True
-            if self._data.get("SetpointOrigin", self._data.get("SetPointOrigin",TEXT_UNKNOWN)) == "FromBoost"
+            if "Boost" in self._data.get("SetpointOrigin", self._data.get("SetPointOrigin",TEXT_UNKNOWN))
             else False
         )
 
@@ -102,7 +239,7 @@ class _WiserRoom(object):
         """Get if the room has an override"""
         return (
             True
-            if self._data.get("OverrideType", TEXT_UNKNOWN) != TEXT_UNKNOWN
+            if self._data.get("OverrideType", TEXT_UNKNOWN) not in  [TEXT_UNKNOWN, "None"]
             else False
         )
 
@@ -116,36 +253,35 @@ class _WiserRoom(object):
     @property
     def manual_target_temperature(self) -> float:
         """Get current target temperature for manual mode"""
-        return _from_wiser_temp(self._data.get("ManualSetPoint", TEMP_MINIMUM))
+        return tf._from_wiser_temp(self._data.get("ManualSetPoint", TEMP_MINIMUM))
 
     @property
-    def mode(self) -> str:
+    def mode(self) -> WiserHeatingModeEnum:
         """Get or set current mode for the room (Off, Manual, Auto)"""
-        if self._mode == WiserModeEnum.manual and self.current_target_temperature == TEMP_OFF:
-            return WiserModeEnum.off.value
-        return self._mode.value
+        return self._mode
 
-    def set_mode(self, mode: str):
-        if mode == WiserModeEnum.off.value:
-            if self.set_manual_temperature(TEMP_OFF):
-                self._mode = WiserModeEnum.off
-        elif mode == WiserModeEnum.manual.value:
-            if self._send_command({"Mode": WiserModeEnum.manual.value}):
-                self._mode = WiserModeEnum.manual
+    @mode.setter
+    def mode(self, mode: WiserHeatingModeEnum):
+        if mode == WiserHeatingModeEnum.off:
+            self.set_manual_temperature(TEMP_OFF)
+        elif mode == WiserHeatingModeEnum.manual:
+            if self._send_command({"Mode": TEXT_MANUAL}):
                 if self.current_target_temperature == TEMP_OFF:
-                    self.override_temperature(self.scheduled_target_temperature)
-        else:
+                    self.set_target_temperature(self.scheduled_target_temperature)
+        elif mode == WiserHeatingModeEnum.auto:
             if self.is_override:
                 self.cancel_overrides()
-            if self._send_command({"Mode": WiserModeEnum.auto.value}):
-                self._mode = WiserModeEnum.auto
+            self._send_command({"Mode": WiserHeatingModeEnum.auto.value})
+            
+        self._mode = mode
 
     @property
     def name(self) -> str:
         """Get or set the name of the room"""
         return self._name
 
-    def set_name(self, name: str):
+    @name.setter
+    def name(self, name: str):
         if self._send_command({"Name": name.title()}):
             self._name = name.title()
 
@@ -177,19 +313,20 @@ class _WiserRoom(object):
     @property
     def scheduled_target_temperature(self) -> float:
         """Get the scheduled target temperature for the room"""
-        return _from_wiser_temp(self._data.get("ScheduledSetPoint", TEMP_MINIMUM))
+        return tf._from_wiser_temp(self._data.get("ScheduledSetPoint", TEMP_MINIMUM))
 
     @property
     def target_temperature_origin(self) -> str:
         """Get the origin of the target temperature setting for the room"""
-        return self._data.get("SetpointOrigin", TEXT_UNKNOWN)
+        return self._data.get("SetpointOrigin", self._data.get("SetpointOrigin", TEXT_UNKNOWN))
 
     @property
     def window_detection_active(self) -> bool:
         """Get or set if window detection is active"""
         return self._window_detection_active
 
-    def set_window_detection_active(self, enabled: bool):
+    @window_detection_active.setter
+    def window_detection_active(self, enabled: bool):
         if self._send_command({"WindowDetectionActive": enabled}):
             self._window_detection_active = enabled
 
@@ -201,20 +338,22 @@ class _WiserRoom(object):
         """
         return self._data.get("WindowState", TEXT_UNKNOWN)
 
-    def set_boost(self, inc_temp: float, duration: int) -> bool:
+    def boost(self, inc_temp: float, duration: int) -> bool:
         """
-        Boost the temperature of the room
+        Boost the target temperature of the room
         param inc_temp: increase target temperature over current temperature by 0C to 5C
         param duration: the duration to boost the room temperature in minutes
         return: boolean
         """
+        if duration == 0:
+            return self.cancel_boost()
         return self._send_command(
             {
                 "RequestOverride": {
                     "Type": "Boost",
                     "DurationMinutes": duration,
-                    "IncreaseSetPointBy": _to_wiser_temp(inc_temp)
-                    if _to_wiser_temp(inc_temp) <= MAX_BOOST_INCREASE
+                    "IncreaseSetPointBy": tf._to_wiser_temp(inc_temp)
+                    if tf._to_wiser_temp(inc_temp) <= MAX_BOOST_INCREASE
                     else MAX_BOOST_INCREASE,
                 }
             }
@@ -222,7 +361,7 @@ class _WiserRoom(object):
 
     def cancel_boost(self) -> bool:
         """
-        Cancel the temperature boost of the room
+        Cancel the target temperature boost of the room
         return: boolean
         """
         if self.is_boosted:
@@ -230,9 +369,9 @@ class _WiserRoom(object):
         else:
             return False
 
-    def override_temperature(self, temp: float) -> bool:
+    def set_target_temperature(self, temp: float) -> bool:
         """
-        Set the temperature of the room to override current schedule temp or in manual mode
+        Set the target temperature of the room to override current schedule temp or in manual mode
         param temp: the temperature to set in C
         return: boolean
         """
@@ -240,14 +379,14 @@ class _WiserRoom(object):
             {
                 "RequestOverride": {
                     "Type": "Manual",
-                    "SetPoint": _to_wiser_temp(temp),
+                    "SetPoint": tf._to_wiser_temp(temp),
                 }
             }
         )
 
-    def override_temperature_for_duration(self, temp: float, duration: int) -> bool:
+    def set_target_temperature_for_duration(self, temp: float, duration: int) -> bool:
         """
-        Set the temperature of the room to override current schedule temp or in manual mode
+        Set the target temperature of the room to override current schedule temp or in manual mode
         param temp: the temperature to set in C
         return: boolean
         """
@@ -256,27 +395,28 @@ class _WiserRoom(object):
                 "RequestOverride": {
                     "Type": "Manual",
                     "DurationMinutes": duration,
-                    "SetPoint": _to_wiser_temp(temp),
+                    "SetPoint": tf._to_wiser_temp(temp),
                 }
             }
         )
 
     def set_manual_temperature(self, temp: float):
         """
-        Set the manual temperature for the room
+        Set the mode to manual with target temperature for the room
         param temp: the temperature to set in C
         return: boolean
         """
-        self.set_mode(WiserModeEnum.manual.value)
-        return self.override_temperature(temp)
+        if self.mode != WiserHeatingModeEnum.manual:
+            self.mode = WiserHeatingModeEnum.manual
+        return self.set_target_temperature(temp)
 
     def schedule_advance(self):
         """
         Advance room schedule to the next scheduled time and temperature setting
         return: boolean
         """
-        return self.override_temperature(
-            _from_wiser_temp(self.schedule.next_entry.setting)
+        return self.set_target_temperature(
+            tf._from_wiser_temp(self.schedule.next_entry.setting)
         )
 
     def cancel_overrides(self):

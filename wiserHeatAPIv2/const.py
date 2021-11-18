@@ -3,12 +3,12 @@ import enum
 # Temperature Constants
 DEFAULT_AWAY_MODE_TEMP = 10.5
 DEFAULT_DEGRADED_TEMP = 18
-HW_ON = 110
-HW_OFF = -20
 MAX_BOOST_INCREASE = 5
 TEMP_ERROR = 2000
 TEMP_MINIMUM = 5
 TEMP_MAXIMUM = 30
+TEMP_HW_ON = 110
+TEMP_HW_OFF = -20
 TEMP_OFF = -20
 
 # Battery Constants
@@ -22,8 +22,10 @@ REST_TIMEOUT = 15
 
 
 # Text Values
+TEXT_AUTO = "Auto"
 TEXT_DEGREESC = "DegreesC"
 TEXT_HEATING = "Heating"
+TEXT_MANUAL = "Manual"
 TEXT_OFF = "Off"
 TEXT_ON = "On"
 TEXT_ONOFF = "OnOff"
@@ -52,15 +54,21 @@ WISERROOMSTAT = "RoomStat/{}"
 WISERSMARTPLUG = "SmartPlug/{}"
 
 # Enums
-class WiserModeEnum(enum.Enum):
-    off = "Off"
-    auto = "Auto"
-    manual = "Manual"
+class WiserHeatingModeEnum(enum.Enum):
+    off = TEXT_OFF
+    auto = TEXT_AUTO
+    manual = TEXT_MANUAL
 
 
-class WiserHotWaterStateEnum(enum.Enum):
-    off = "Off"
-    on = "On"
+class WiserHotWaterModeEnum(enum.Enum):
+    off = TEXT_OFF
+    on = TEXT_ON
+    auto = TEXT_AUTO
+
+class WiserSmartPlugModeEnum(enum.Enum):
+    off = TEXT_OFF
+    on = TEXT_ON
+    auto = TEXT_AUTO
 
 
 class WiserAwayActionEnum(enum.Enum):

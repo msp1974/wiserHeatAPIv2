@@ -1,20 +1,48 @@
 from . import _LOGGER
 
-from device import _WiserDevice
-from helpers import _to_wiser_temp, _from_wiser_temp
-from rest_controller import _WiserRestController
-from schedule import _WiserSchedule
+from .device import _WiserDevice
+from .rest_controller import _WiserRestController
+from .schedule import _WiserSchedule
 
-from const import (
+from .const import (
     WISERSMARTPLUG,
     TEXT_UNKNOWN,
     TEXT_OFF,
     TEXT_ON,
     WiserAwayActionEnum,
-    WiserModeEnum
+    WiserSmartPlugModeEnum
 )
 
 import inspect
+
+
+class _WiserSmartPlugCollection(object):
+    """Class holding all wiser smart plugs"""
+
+    def __init__(self):
+        self._smartplugs = []
+
+    @property
+    def all(self) -> dict:
+        return list(self._smartplugs)
+
+    @property
+    def count(self) -> int:
+        return len(self.all)
+
+    # Smartplugs
+    def get_by_id(self, id: int):
+        """
+        Gets a SmartPlug object from the SmartPlugs id
+        param id: id of smart plug
+        return: _WiserSmartPlug object
+        """
+        try:
+            return [smartplug for smartplug in self.all if smartplug.id == id][0]
+        except IndexError:
+            return None
+
+
 
 class _WiserSmartPlug(_WiserDevice):
     """Class representing a Wiser Smart Plug device"""
@@ -22,10 +50,8 @@ class _WiserSmartPlug(_WiserDevice):
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
         super().__init__(data)
         self._wiser_rest_controller = wiser_rest_controller
-        self._data = data
         self._device_type_data = device_type_data
         self._schedule = schedule
-
         self._away_action = device_type_data.get("AwayAction", TEXT_UNKNOWN)
         self._mode = device_type_data.get("Mode", TEXT_UNKNOWN)
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
@@ -73,8 +99,9 @@ class _WiserSmartPlug(_WiserDevice):
         return self._mode
 
     @mode.setter
-    def mode(self, mode: WiserModeEnum):
-        if mode == WiserModeEnum.off:
+    #TODO: Fix this to support on/off/auto modes like hotwater!
+    def mode(self, mode: WiserSmartPlugModeEnum):
+        if mode == WiserSmartPlugModeEnum.off:
             raise ValueError("You cannot set a smart plug to off mode.")
         else:
             if self._send_command({"Mode": mode.value}):
@@ -117,7 +144,8 @@ class _WiserSmartPlug(_WiserDevice):
         """
         result = self._send_command({"RequestOutput": TEXT_ON})
         if result:
-            self._output_is_on = True
+            self._output_state = TEXT_ON
+            _LOGGER.info("Self output - " + "Yes" if self.is_on else "No")
         return result
 
     def turn_off(self) -> bool:
@@ -127,5 +155,6 @@ class _WiserSmartPlug(_WiserDevice):
         """
         result = self._send_command({"RequestOutput": TEXT_OFF})
         if result:
-            self._output_is_on = False
+            self._output_state = TEXT_OFF
+            _LOGGER.info("Self output - " + "Yes" if self.is_on else "No")
         return result

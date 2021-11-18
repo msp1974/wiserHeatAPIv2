@@ -1,9 +1,11 @@
 from . import _LOGGER
 
-from helpers import _to_wiser_temp, _from_wiser_temp
-from rest_controller import _WiserRestController
+from .device import _WiserSignalStrength
+from .devices import _WiserDeviceCollection
+from .helpers import _WiserTemperatureFunctions as tf
+from .rest_controller import _WiserRestController
 
-from const import (
+from .const import (
     TEXT_ON,
     TEXT_UNKNOWN,
     MAX_BOOST_INCREASE,
@@ -17,25 +19,46 @@ class _WiserSystem(object):
     """Class representing a Wiser Hub device"""
 
     def __init__(
-        self, data: dict, device_data: dict, network_data: dict, cloud_data: dict
+        self, 
+        wiser_rest_controller: _WiserRestController, 
+        domain_data: dict, 
+        network_data: dict,
+        device_data: dict
     ):
-        self._data = data
-        self._device_data = device_data
-        self._network_data = network_data
-        self._cloud_data = cloud_data
 
-        self._automatic_daylight_saving = data.get("AutomaticDaylightSaving")
-        self._away_mode_affects_hotwater = data.get("AwayModeAffectsHotWater")
-        self._away_mode_target_temperature = data.get("AwayModeSetPointLimit")
-        self._comfort_mode_enabled = data.get("ComfortModeEnabled")
-        self._degraded_mode_target_temperature = data.get(
+        self._wiser_rest_controller = wiser_rest_controller
+        self._data = domain_data
+        self._system_data = domain_data.get("System",{})
+
+        # Sub classes for system setting values
+        self._capability_data = _WiserHubCapabilitiesInfo(self._data.get("DeviceCapabilityMatrix",{}))
+        self._cloud_data = _WiserCloud(self._system_data.get("CloudConnectionSTatus"), self._data.get("Cloud",{}))
+        self._device_data = self._get_system_device(device_data)
+        self._network_data = _WiserNetwork(network_data.get("Station", {}))
+        self._signal = _WiserSignalStrength(self._data)
+        self._system_data = self._data.get("System",{})
+        self._upgrade_data = _WiserFirmareUpgradeInfo(self._data.get("UpgradeInfo",{}))
+        self._zigbee_data = _WiserZigbee( self._data.get("Zigbee",{}))
+
+        # Variables to hold values for settabel values
+        self._automatic_daylight_saving = self._system_data.get("AutomaticDaylightSaving")
+        self._away_mode_affects_hotwater = self._system_data.get("AwayModeAffectsHotWater")
+        self._away_mode_target_temperature = self._system_data.get("AwayModeSetPointLimit")
+        self._comfort_mode_enabled = self._system_data.get("ComfortModeEnabled")
+        self._degraded_mode_target_temperature = self._system_data.get(
             "DegradedModeSetpointThreshold"
         )
-        self._eco_mode_enabled = data.get("EcoModeEnabled")
-        self._hub_time = datetime.fromtimestamp(data.get("UnixTime"))
-        self._override_type = data.get("OverrideType", "")
-        self._timezone_offset = data.get("TimeZoneOffset")
-        self._valve_protection_enabled = data.get("ValveProtectionEnabled")
+        self._eco_mode_enabled = self._system_data.get("EcoModeEnabled")
+        self._hub_time = datetime.fromtimestamp(self._system_data.get("UnixTime"))
+        self._override_type = self._system_data.get("OverrideType", "")
+        self._timezone_offset = self._system_data.get("TimeZoneOffset")
+        self._valve_protection_enabled = self._system_data.get("ValveProtectionEnabled")
+
+    def _get_system_device(self, device_data: dict):
+        for device in device_data:
+                # Add controller to sytem class
+                if device.get("ProductType") == "Controller":
+                    return device
 
     def _send_command(self, cmd: dict) -> bool:
         """
@@ -43,18 +66,18 @@ class _WiserSystem(object):
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        rest = _WiserRestController()
-        result = rest._send_command(WISERSYSTEM, cmd)
+        result = self._wiser_rest_controller._send_command(WISERSYSTEM, cmd)
         if result:
             _LOGGER.info(
                 "Wiser hub - {} command successful".format(inspect.stack()[1].function)
             )
         return result
+    
 
     @property
-    def active_firmware_version(self) -> str:
+    def active_system_version(self) -> str:
         """Get current hub firmware version"""
-        return self._data.get("ActiveSystemVersion", TEXT_UNKNOWN)
+        return self._system_data.get("ActiveSystemVersion", TEXT_UNKNOWN)
 
     @property
     def automatic_daylight_saving_enabled(self) -> bool:
@@ -89,31 +112,36 @@ class _WiserSystem(object):
     @property
     def away_mode_target_temperature(self) -> float:
         """Get or set target temperature for away mode"""
-        return _from_wiser_temp(self._away_mode_target_temperature)
+        return tf._from_wiser_temp(self._away_mode_target_temperature)
 
     @away_mode_target_temperature.setter
     def away_mode_target_temperature(self, temp: float):
-        temp = _to_wiser_temp(temp)
+        temp = temp._to_wiser_temp(temp)
         if self._send_command({"AwayModeSetPointLimit": temp}):
-            self._away_mode_target_temperature = _to_wiser_temp(temp)
+            self._away_mode_target_temperature = temp._to_wiser_temp(temp)
 
     @property
     def boiler_fuel_type(self) -> str:
         """Get boiler fuel type setting"""
         # TODO: Add ability to set to 1 of 3 types
-        return self._data.get("BoilerSettings", {"FuelType": TEXT_UNKNOWN}).get(
+        return self._system_data.get("BoilerSettings", {"FuelType": TEXT_UNKNOWN}).get(
             "FuelType"
         )
 
     @property
     def brand_name(self) -> str:
         """Get brand name of Wiser hub"""
-        return self._data.get("BrandName")
+        return self._system_data.get("BrandName")
+
+    @property
+    def capabilities(self):
+        """Get capability info"""
+        return _WiserHubCapabilitiesInfo(self._capability_data)
 
     @property
     def cloud(self):
         """Get cloud settings"""
-        return _WiserCloud(self._data.get("CloudConnectionStatus"), self._cloud_data)
+        return self._cloud_data
 
     @property
     def comfort_mode_enabled(self) -> bool:
@@ -128,11 +156,11 @@ class _WiserSystem(object):
     @property
     def degraded_mode_target_temperature(self) -> float:
         """Get or set degraded mode target temperature"""
-        return _from_wiser_temp(self._degraded_mode_target_temperature)
+        return tf._from_wiser_temp(self._degraded_mode_target_temperature)
 
     @degraded_mode_target_temperature.setter
     def degraded_mode_target_temperature(self, temp: float):
-        temp = _to_wiser_temp(temp)
+        temp = temp._to_wiser_temp(temp)
         if self._send_command({"DegradedModeSetpointThreshold": temp}):
             self._degraded_mode_target_temperature = temp
 
@@ -149,25 +177,30 @@ class _WiserSystem(object):
     @property
     def firmware_over_the_air_enabled(self) -> bool:
         """Whether firmware updates over the air are enabled on the hub"""
-        return self._data.get("FotaEnabled")
+        return self._system_data.get("FotaEnabled")
+
+    @property
+    def firmware_version(self) -> str:
+        """Get firmware version of device"""
+        return self._device_data.get("ActiveFirmwareVersion", TEXT_UNKNOWN)
 
     @property
     def geo_position(self):
         """Get geo location information"""
-        return _WiserGPS(self._data.get("GeoPosition", {}))
+        return _WiserGPS(self._system_data.get("GeoPosition", {}))
 
     @property
     def heating_button_override_state(self) -> bool:
         """Get if heating override button is on"""
         return (
-            True if self._data.get("HeatingButtonOverrideState") == TEXT_ON else False
+            True if self._system_data.get("HeatingButtonOverrideState") == TEXT_ON else False
         )
 
     @property
     def hotwater_button_override_state(self) -> bool:
         """Get if hot water override button is on"""
         return (
-            True if self._data.get("HotWaterButtonOverrideState") == TEXT_ON else False
+            True if self._system_data.get("HotWaterButtonOverrideState") == TEXT_ON else False
         )
 
     @property
@@ -176,31 +209,74 @@ class _WiserSystem(object):
         return self._hub_time
 
     @property
+    def id(self) -> int:
+        """Get id of device"""
+        return self._device_data.get("id")
+
+    @property
+    def is_away_mode_enabled(self) -> bool:
+        """Get if away mode is enabled"""
+        return True if self._override_type == "Away" else False
+
+    @property
+    def model(self) -> str:
+        """Get model of device"""
+        return self._device_data.get("ModelIdentifier", TEXT_UNKNOWN)
+
+    @property
     def name(self) -> str:
         """Get name of hub"""
-        return self._network_data.get("Station", {"MdnsHostname": TEXT_UNKNOWN}).get(
-            "MdnsHostname"
-        )
+        return self.network.hostname
 
     @property
     def network(self):
         """Get network information from hub"""
-        return _WiserNetwork(self._network_data.get("Station", {}))
+        return self._network_data
+
+    @property
+    def node_id(self) -> int:
+        """Get zigbee node id of device"""
+        return self._device_data.get("NodeId", 0)
 
     @property
     def opentherm_connection_status(self) -> str:
         """Get opentherm connection status"""
-        return self._data.get("OpenThermConnectionStatus", TEXT_UNKNOWN)
+        return self._system_data.get("OpenThermConnectionStatus", TEXT_UNKNOWN)
+
+    @property
+    def opentherm_connection_status(self) -> str:
+        """Get opentherm connection status"""
+        return self._system_data.get("OpenThermConnectionStatus", TEXT_UNKNOWN)
 
     @property
     def pairing_status(self) -> str:
         """Get account pairing status"""
-        return self._data.get("PairingStatus", TEXT_UNKNOWN)
+        return self._system_data.get("PairingStatus", TEXT_UNKNOWN)
+    
+    @property
+    def parent_node_id(self) -> int:
+        """Get zigbee node id of device this device is connected to"""
+        return self._device_data.get("ParentNodeId", 0)
+
+    @property
+    def product_type(self) -> str:
+        """Get product type of device"""
+        return self._device_data.get("ProductType", TEXT_UNKNOWN)
+
+    @property
+    def serial_number(self) -> str:
+        """Get serial number of device"""
+        return self._device_data.get("SerialNumber", TEXT_UNKNOWN)
+
+    @property
+    def signal(self) -> object:
+        """Get zwave network information"""
+        return self._signal
 
     @property
     def system_mode(self) -> str:
         """Get current system mode"""
-        return self._data.get("SystemMode", TEXT_UNKNOWN)
+        return self._system_data.get("SystemMode", TEXT_UNKNOWN)
 
     @property
     def timezone_offset(self) -> int:
@@ -215,7 +291,7 @@ class _WiserSystem(object):
     @property
     def user_overrides_active(self) -> bool:
         """Get if any overrides are active"""
-        return self._data.get("UserOverridesActive", False)
+        return self._system_data.get("UserOverridesActive", False)
 
     @property
     def valve_protection_enabled(self) -> bool:
@@ -231,6 +307,12 @@ class _WiserSystem(object):
         if self._send_command({"ValveProtectionEnabled": enabled}):
             self._valve_protection_enabled = enabled
 
+    @property
+    def zigbee(self):
+        """Get zigbee info"""
+        return self._zigbee_data
+
+
     def boost_all_rooms(self, inc_temp: float, duration: int) -> bool:
         """
         Boost the temperature of all rooms
@@ -243,8 +325,8 @@ class _WiserSystem(object):
                 "RequestOverride": {
                     "Type": "Boost",
                     "DurationMinutes": duration,
-                    "IncreaseSetPointBy": _to_wiser_temp(inc_temp)
-                    if _to_wiser_temp(inc_temp) <= MAX_BOOST_INCREASE
+                    "IncreaseSetPointBy": tf._to_wiser_temp(inc_temp)
+                    if tf._to_wiser_temp(inc_temp) <= MAX_BOOST_INCREASE
                     else MAX_BOOST_INCREASE,
                 }
             }
@@ -257,9 +339,6 @@ class _WiserSystem(object):
         """
         return self._send_command({"RequestOverride": {"Type": "CancelUserOverrides"}})
 
-# -----------------------------------------------------------
-# Support Classess
-# -----------------------------------------------------------
 
 class _WiserNetwork:
     """Data structure for network information for a Wiser Hub"""
@@ -383,37 +462,41 @@ class _WiserCloud:
         return self._data.get("Environment", TEXT_UNKNOWN)
 
 
-class _WiserZwaveSignal:
-    """Data structure for zigbee signal information for a Wiser device"""
+class _WiserZigbee:
+    """Data structure for zigbee information for a Wiser Hub"""
 
     def __init__(self, data: dict):
         self._data = data
 
     @property
-    def displayed_signal_strength(self) -> str:
-        """Get the description of signal strength"""
-        return self._data.get("DisplayedSignalStrength", TEXT_UNKNOWN)
+    def error_72_reset(self) -> int:
+        """Get error72reset info"""
+        return self._data.get("Error72Reset", 0)
+    
+    @property
+    def jpan_count(self) -> int:
+        """Get jpan count info"""
+        return self._data.get("JPANCount", 0)
 
     @property
-    def rssi(self) -> int:
-        """Get the rssi (strength) of the device signal"""
-        if self._data.get("ProductType") == "SmartPlug":
-            return self._data.get("ReceptionOfDevice", {"Rssi": 0}).get("Rssi")
-        else:
-            return self._data.get("ReceptionOfController", {"Rssi": 0}).get("Rssi")
+    def network_channel(self) -> int:
+        """Get network channel info"""
+        return self._data.get("NetworkChannel", 0)
 
     @property
-    def lqi(self) -> int:
-        """Get the signal lqi (quality) for the device"""
-        if self._data.get("ProductType") == "SmartPlug":
-            return self._data.get("ReceptionOfDevice", {"Lqi": 0}).get("Lqi")
-        else:
-            return self._data.get("ReceptionOfController", {"Lqi": 0}).get("Lqi")
+    def no_signal_reset(self) -> int:
+        """Get no signal reset info"""
+        return self._data.get("NoSignalReset", 0)
 
     @property
-    def signal_strength(self) -> int:
-        """Get the signal strength percent for the device"""
-        return min(100, int(2 * (self.rssi + 100)))
+    def module_version(self) -> str:
+        """Get zigbee module version info"""
+        return self._data.get("ZigbeeModuleVersion", TEXT_UNKNOWN)
+
+    @property
+    def eui(self) -> str:
+        """Get zigbee eui info"""
+        return self._data.get("ZigbeeEUI", TEXT_UNKNOWN)
 
 
 class _WiserGPS:
@@ -431,3 +514,61 @@ class _WiserGPS:
     def longitude(self) -> float:
         """Get the longitude of the hub"""
         return self._data.get("Longitude")
+
+
+class _WiserFirmwareUpgradeItem:
+    """Data structure for upgrade info for a Wiser Hub"""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def id(self) -> int:
+        "Get the id of the firmware filename"
+        return self._data.get("id",0)
+
+    @property
+    def filename(self) -> str:
+        "Get the filename of the firmware file"
+        return self._data.get("FirmwareFilename", TEXT_UNKNOWN)
+
+
+class _WiserFirmareUpgradeInfo:
+    """Data structure to hold upgrade file info for a Wiser Hub"""
+    def __init__(self, data: dict):
+        self._data = data
+        self._items = []
+        for item in self._data:
+            self._items.append(_WiserFirmwareUpgradeItem(item))
+
+    @property
+    def all(self) -> dict:
+        return self._items
+
+    def by_id(self, id) -> _WiserFirmwareUpgradeItem:
+        return [item for item in self._items if item.id == id][0]
+
+
+class _WiserHubCapabilitiesInfo:
+    """Data structure for capabilities info for Wiser Hub"""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def capabilities(self):
+        "Get the list of capabilities"
+        return self._data
+
+    def get_capability(self, name) -> bool:
+        """
+        Gets a capability value from the hub capabilities
+        param name: name of capability
+        return: bool
+        """
+        try:
+            return [capability.value for capability in self.capabilities if capability.key == name][0]
+        except IndexError:
+            return None
+
+    

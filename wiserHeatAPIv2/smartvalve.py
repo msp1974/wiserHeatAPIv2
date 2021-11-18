@@ -1,13 +1,45 @@
 from . import _LOGGER
 
-from battery import _WiserBattery
-from device import _WiserDevice
-from helpers import _from_wiser_temp
-from rest_controller import _WiserRestController
+from .helpers import _WiserBattery
+from .device import _WiserDevice
+from .helpers import _WiserTemperatureFunctions as tf
+from .rest_controller import _WiserRestController
 
-from const import WISERSMARTVALVE
+from .const import WISERSMARTVALVE
 
 import inspect
+
+
+class _WiserSmartValveCollection(object):
+    """Class holding all wiser smart valves"""
+
+    def __init__(self):
+        self._smartvalves = []
+
+    @property
+    def all(self) -> dict:
+        return list(self._smartvalves)
+
+    @property
+    def count(self) -> int:
+        return len(self.all)
+
+    def get_by_id(self, id: int):
+        """
+        Gets a SmartValve object from the SmartValves id
+        param id: id of smart valve
+        return: _WiserSmartValve object
+        """
+        try:
+            return [
+                smartvalve for smartvalve in self.all if smartvalve.id == id
+            ][0]
+        except IndexError:
+            return None
+
+    def get_by_room_name(self, room_name:str):
+        pass
+    
 
 class _WiserSmartValve(_WiserDevice):
     """Class representing a Wiser Smart Valve device"""
@@ -15,9 +47,7 @@ class _WiserSmartValve(_WiserDevice):
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict):
         super().__init__(data)
         self._wiser_rest_controller = wiser_rest_controller
-        self._data = data
         self._device_type_data = device_type_data
-
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._indentify_active = data.get("IdentifyActive", False)
 
@@ -54,12 +84,12 @@ class _WiserSmartValve(_WiserDevice):
     @property
     def current_target_temperature(self) -> float:
         """Get the smart valve current target temperature setting"""
-        return _from_wiser_temp(self._device_type_data.get("SetPoint"))
+        return tf._from_wiser_temp(self._device_type_data.get("SetPoint"))
 
     @property
     def current_temperature(self) -> float:
         """Get the current temperature measured by the smart valve"""
-        return _from_wiser_temp(self._device_type_data.get("MeasuredTemperature"))
+        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature"))
 
     @property
     def identify(self) -> bool:
