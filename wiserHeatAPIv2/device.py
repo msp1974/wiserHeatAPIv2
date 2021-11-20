@@ -83,4 +83,4 @@ class _WiserSignalStrength(object):
     @property
     def signal_strength(self) -> int:
         """Get the signal strength percent for the device"""
-        return min(100, int(2 * (self.rssi + 100)))
+        return min(100, int(2 * (self.controller_reception_rssi + 100)))

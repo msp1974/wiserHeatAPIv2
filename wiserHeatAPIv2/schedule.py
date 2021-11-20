@@ -214,26 +214,13 @@ class _WiserSchedule(object):
         except Exception as ex:
             _LOGGER.debug(ex)
 
-    # TODO: Decide on seperate properties or single setting or both
-    @property
-    def current_target_temperature(self) -> float:
-        """Get current scheduled target temperature for heating device"""
-        return tf._from_wiser_temp(
-            self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM)
-        )
-
     @property
     def current_setting(self) -> str:
         """Get current scheduled setting (temp or state)"""
         if self._type == "Heating":
-            return self.current_target_temperature
+            return self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM)
         if self._type == "OnOff":
-            return self.current_state
-
-    @property
-    def current_state(self) -> str:
-        """Get current scheduled state for on off device"""
-        return self._schedule_data.get("CurrentState", TEXT_UNKNOWN)
+            return self._schedule_data.get("CurrentState", TEXT_UNKNOWN)
 
     @property
     def id(self) -> int:

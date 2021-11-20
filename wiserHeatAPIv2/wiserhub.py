@@ -47,9 +47,6 @@ from .rest_controller import _WiserRestController, _WiserConnection
 from .room import _WiserRoomCollection
 from .schedule import _WiserScheduleCollection
 from .system import _WiserSystem
-#import logging
-
-__VERSION__ = "0.1.1"
 
 
 class WiserAPI(object):
@@ -163,10 +160,10 @@ class WiserAPI(object):
         """List of room entities configured on the Wiser Hub"""
         return self._rooms
 
-    @property
-    def schedules(self):
-        """List of schedule entities on the Wiser Hub"""
-        return self._schedules
+    #@property
+    #def schedules(self):
+    #    """List of schedule entities on the Wiser Hub"""
+    #    return self._schedules
 
     @property
     def system(self):

@@ -35,7 +35,7 @@ class _WiserSystem(object):
         self._cloud_data = _WiserCloud(self._system_data.get("CloudConnectionSTatus"), self._data.get("Cloud",{}))
         self._device_data = self._get_system_device(device_data)
         self._network_data = _WiserNetwork(network_data.get("Station", {}))
-        self._signal = _WiserSignalStrength(self._data)
+        self._signal = _WiserSignalStrength(self._device_data)
         self._system_data = self._data.get("System",{})
         self._upgrade_data = _WiserFirmareUpgradeInfo(self._data.get("UpgradeInfo",{}))
         self._zigbee_data = _WiserZigbee( self._data.get("Zigbee",{}))
@@ -134,9 +134,9 @@ class _WiserSystem(object):
         return self._system_data.get("BrandName")
 
     @property
-    def capabilities(self):
+    def capabilities(self) -> list:
         """Get capability info"""
-        return _WiserHubCapabilitiesInfo(self._capability_data)
+        return self._capability_data
 
     @property
     def cloud(self):
@@ -244,11 +244,6 @@ class _WiserSystem(object):
         return self._system_data.get("OpenThermConnectionStatus", TEXT_UNKNOWN)
 
     @property
-    def opentherm_connection_status(self) -> str:
-        """Get opentherm connection status"""
-        return self._system_data.get("OpenThermConnectionStatus", TEXT_UNKNOWN)
-
-    @property
     def pairing_status(self) -> str:
         """Get account pairing status"""
         return self._system_data.get("PairingStatus", TEXT_UNKNOWN)
@@ -263,10 +258,10 @@ class _WiserSystem(object):
         """Get product type of device"""
         return self._device_data.get("ProductType", TEXT_UNKNOWN)
 
-    @property
-    def serial_number(self) -> str:
-        """Get serial number of device"""
-        return self._device_data.get("SerialNumber", TEXT_UNKNOWN)
+    #@property
+    #def serial_number(self) -> str:
+    #    """Get serial number of device"""
+    #    return self._device_data.get("SerialNumber", TEXT_UNKNOWN)
 
     @property
     def signal(self) -> object:
@@ -456,10 +451,10 @@ class _WiserCloud:
         """Get if diagnostic telemetry is enabled"""
         return self._data.get("EnableDiagnosticTelemetry", False)
 
-    @property
-    def environment(self) -> str:
-        """Get the cloud environment the hub is connected to"""
-        return self._data.get("Environment", TEXT_UNKNOWN)
+    #@property
+    #def environment(self) -> str:
+    #    """Get the cloud environment the hub is connected to"""
+    #    return self._data.get("Environment", TEXT_UNKNOWN)
 
 
 class _WiserZigbee:
@@ -556,10 +551,10 @@ class _WiserHubCapabilitiesInfo:
         self._data = data
 
     @property
-    def capabilities(self):
+    def all(self) -> str:
         "Get the list of capabilities"
         return self._data
-
+    
     def get_capability(self, name) -> bool:
         """
         Gets a capability value from the hub capabilities

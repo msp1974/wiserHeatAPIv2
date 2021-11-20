@@ -99,7 +99,6 @@ class _WiserSmartPlug(_WiserDevice):
         return self._mode
 
     @mode.setter
-    #TODO: Fix this to support on/off/auto modes like hotwater!
     def mode(self, mode: WiserSmartPlugModeEnum):
         if mode == WiserSmartPlugModeEnum.off:
             raise ValueError("You cannot set a smart plug to off mode.")

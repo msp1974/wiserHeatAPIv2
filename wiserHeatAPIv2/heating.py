@@ -93,6 +93,6 @@ class _WiserHeatingChannel(object):
         return self._data.get("PercentageDemand", 0)
 
     @property
-    def room_ids(self):
+    def room_ids(self) -> list:
         """Get a list of the room ids attached to this heating channel"""
-        return self._data.get("RoomIds", [])
+        return self._data.get("RoomIds", None)
