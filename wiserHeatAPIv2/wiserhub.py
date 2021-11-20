@@ -14,7 +14,7 @@ This API allows you to get information from and control your wiserhub.
 
 # TODO: Keep objects and update instead of recreating on hub update
 # TODO: Update entity values after commend issued to get current values
-from . import _LOGGER
+from . import _LOGGER, __VERSION__
 
 from .const import (
     DEFAULT_AWAY_MODE_TEMP,
@@ -43,6 +43,7 @@ from .exceptions import (
 from .devices import _WiserDeviceCollection
 from .heating import _WiserHeatingChannelCollection
 from .hot_water import _WiserHotwater
+from .moments import _WiserMomentCollection
 from .rest_controller import _WiserRestController, _WiserConnection
 from .room import _WiserRoomCollection
 from .schedule import _WiserScheduleCollection
@@ -65,12 +66,13 @@ class WiserAPI(object):
         self._wiser_api_connection.units = units
         
         # Data stores for exposed properties
-        self._schedules = []
-        self._system = None
         self._devices = []
-        self._rooms = []
         self._hotwater = None
         self._heating_channels = []
+        self._moments = []
+        self._rooms = []
+        self._schedules = []
+        self._system = None
 
         # Log initialisation info
         _LOGGER.info("WiserHub API Initialised : Version {}".format(__VERSION__))
@@ -134,6 +136,10 @@ class WiserAPI(object):
                 self._rooms
             )
 
+        # Moments
+        if _domain_data.get("Moment"):
+            self._moments = _WiserMomentCollection(self._wiser_rest_controller, _domain_data.get("Moment"))
+
         # If gets here with no exceptions then success and return true
         return True
 
@@ -154,6 +160,11 @@ class WiserAPI(object):
     def hotwater(self):
         """List of hot water entities on the Wiser Hub"""
         return self._hotwater
+
+    @property
+    def moments(self):
+        """List of moment entities on the Wiser Hub"""
+        return self._moments
 
     @property
     def rooms(self):
