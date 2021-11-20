@@ -89,6 +89,11 @@ class _WiserSmartPlug(_WiserDevice):
         return self._device_type_data.get("ControlSource", TEXT_UNKNOWN)
 
     @property
+    def current_delivered(self) -> int:
+        """Get the amount of current throught the plug over time"""
+        return self._device_type_data.get("CurrentSummationDelivered",0)
+
+    @property
     def manual_state(self) -> str:
         """Get the current manual mode setting of the smart plug"""
         return self._device_type_data.get("ManualState", TEXT_UNKNOWN)
