@@ -32,7 +32,7 @@ class _WiserSystem(object):
 
         # Sub classes for system setting values
         self._capability_data = _WiserHubCapabilitiesInfo(self._data.get("DeviceCapabilityMatrix",{}))
-        self._cloud_data = _WiserCloud(self._system_data.get("CloudConnectionSTatus"), self._data.get("Cloud",{}))
+        self._cloud_data = _WiserCloud(self._system_data.get("CloudConnectionStatus"), self._data.get("Cloud",{}))
         self._device_data = self._get_system_device(device_data)
         self._network_data = _WiserNetwork(network_data.get("Station", {}))
         self._signal = _WiserSignalStrength(self._device_data)
@@ -188,6 +188,11 @@ class _WiserSystem(object):
     def geo_position(self):
         """Get geo location information"""
         return _WiserGPS(self._system_data.get("GeoPosition", {}))
+
+    @property
+    def hardware_generation(self):
+        """Get hardware generation version"""
+        return self._system_data.get("HardwareGeneration", 0)
 
     @property
     def heating_button_override_state(self) -> bool:
@@ -442,6 +447,11 @@ class _WiserCloud:
         return True if self._cloud_status == "Connected" else False
 
     @property
+    def connection_status(self) -> str:
+        """Get the hub cloud connection status text"""
+        return self._cloud_status
+
+    @property
     def detailed_publishing_enabled(self) -> bool:
         """Get if detailed published is enabled"""
         return self._data.get("DetailedPublishing", False)
@@ -450,11 +460,6 @@ class _WiserCloud:
     def diagnostic_telemetry_enabled(self) -> bool:
         """Get if diagnostic telemetry is enabled"""
         return self._data.get("EnableDiagnosticTelemetry", False)
-
-    #@property
-    #def environment(self) -> str:
-    #    """Get the cloud environment the hub is connected to"""
-    #    return self._data.get("Environment", TEXT_UNKNOWN)
 
 
 class _WiserZigbee:
