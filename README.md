@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.2
+# Drayton Wiser Hub API v2 v0.0.3
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -35,7 +35,7 @@ wiserhubip=192.168.0.22
 ```
 
 ## 5. Run the sample
-To help understand the api simply look at the sample code ```wiserhub2apitest.py``` and the fully commented code. 
+To help understand the api simply look at the sample code ```tests/test_api_properties.py``` and the fully commented code. 
 
 ## 6. Documentation
 
@@ -48,3 +48,7 @@ Initial v2 release
 
 0.0.2
 Updated setup.cfg
+
+0.0.3
+Restructured code
+Added Wiser moments integration (minimal at present)

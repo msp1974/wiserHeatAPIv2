@@ -1,12 +1,12 @@
 Metadata-Version: 2.1
 Name: wiserHeatAPIv2
-Version: 0.1.1
+Version: 0.0.3
 Summary: An API for controlling the Drayton Wiser Heating system
 Home-page: https://github.com/msp1974/wiserheatapiv2
 Author: Mark Parker
 Author-email: msparker@sky.com
-License: MIT
-Description: # Drayton Wiser Hub API v2 v0.0.2
+License: UNKNOWN
+Description: # Drayton Wiser Hub API v2 v0.0.3
         
         This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
         
@@ -19,7 +19,7 @@ Description: # Drayton Wiser Hub API v2 v0.0.2
         ## 1. Find your HeatHub Secret key
         Reference https://it.knightnet.org.uk/kb/nr-qa/drayton-wiser-heating-control/#controlling-the-system
         1. Press the setup button on your HeatHub, the light will start flashing
-        Look for the Wi-Fi network (SSID) called **‘WiserHeatXXX’** where XXX is random
+        Look for the Wi-Fi network (SSID) called **‘WiserHeatXXXXXX’** where XXXXXX is last 6 digits of the MAC address
         2. Connect to the network from a Windows/Linux/Mac/Android/iPhone machine
         3. Execute the secret url :-)
            * Open a browser to url `http://192.168.8.1/secret`
@@ -43,7 +43,7 @@ Description: # Drayton Wiser Hub API v2 v0.0.2
         ```
         
         ## 5. Run the sample
-        To help understand the api simply look at the sample code ```wiserhub2apitest.py``` and the fully commented code. 
+        To help understand the api simply look at the sample code ```tests/test_api_properties.py``` and the fully commented code. 
         
         ## 6. Documentation
         
@@ -56,17 +56,15 @@ Description: # Drayton Wiser Hub API v2 v0.0.2
         
         0.0.2
         Updated setup.cfg
-
-        0.1.1
-        Restructured into seperate class files
-
-        0.1.2
-        Bug fixes
+        
+        0.0.3
+        Restructured code
+        Added Wiser moments integration (minimal at present)
 Platform: UNKNOWN
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
-Requires-Python: >=3.6
+Requires-Python: >=3.9
 Description-Content-Type: text/markdown
