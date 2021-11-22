@@ -351,7 +351,7 @@ class _WiserScheduleNext:
     def setting(self) -> str:
         """Get the next entry setting - temp for heating, state for on/off devices"""
         if self._schedule_type == TEXT_HEATING:
-            return self._data.get("DegreesC")
+            return tf._from_wiser_temp(self._data.get("DegreesC"))
         if self._schedule_type == TEXT_ONOFF:
             return self._data.get("State")
         return None
