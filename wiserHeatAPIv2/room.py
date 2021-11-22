@@ -6,7 +6,6 @@ from .schedule import _WiserSchedule, _WiserScheduleCollection
 from .rest_controller import _WiserRestController
 
 from .const import (
-    MAX_BOOST_INCREASE,
     TEMP_MINIMUM,
     TEMP_MAXIMUM,
     TEMP_OFF,
@@ -344,6 +343,7 @@ class _WiserRoom(object):
         param duration: the duration to boost the room temperature in minutes
         return: boolean
         """
+        _LOGGER.info(f"Boost temp is {inc_temp}")
         if duration == 0:
             return self.cancel_boost()
         return self._send_command(
@@ -351,9 +351,7 @@ class _WiserRoom(object):
                 "RequestOverride": {
                     "Type": "Boost",
                     "DurationMinutes": duration,
-                    "IncreaseSetPointBy": tf._to_wiser_temp(inc_temp)
-                    if tf._to_wiser_temp(inc_temp) <= MAX_BOOST_INCREASE
-                    else MAX_BOOST_INCREASE,
+                    "IncreaseSetPointBy": tf._to_wiser_temp(inc_temp, "delta")
                 }
             }
         )
