@@ -92,7 +92,7 @@ class _WiserTemperatureFunctions(object):
             if units == WiserUnitsEnum.imperial:
                 temp = _WiserTemperatureFunctions._convert_to_F(temp)
 
-            return temp
+            return _WiserTemperatureFunctions._validate_temperature(temp)
         return None
 
     @staticmethod

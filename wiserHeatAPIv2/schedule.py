@@ -218,7 +218,7 @@ class _WiserSchedule(object):
     def current_setting(self) -> str:
         """Get current scheduled setting (temp or state)"""
         if self._type == "Heating":
-            return self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM)
+            return tf._from_wiser_temp(self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM))
         if self._type == "OnOff":
             return self._schedule_data.get("CurrentState", TEXT_UNKNOWN)
 
