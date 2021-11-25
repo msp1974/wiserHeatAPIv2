@@ -21,4 +21,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.9',
+    install_requires=["ruamel.yaml==0.15.42"]
 )
