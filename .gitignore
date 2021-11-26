@@ -1,11 +1,7 @@
-wiserkeys.params
 *.pyc
 build
 dist
-wiser_heating_api.egg-info
+wiserHeatAPIv2.egg-info
 .idea
-room1schedule.json
 /t.py
-room1schedule.json
-tests/params.py
-tests/test.py
+params.py
