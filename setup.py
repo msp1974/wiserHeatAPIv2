@@ -20,6 +20,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["ruamel.yaml==0.15.42, zeroconf"],
+    install_requires=["ruamel.yaml==0.15.42", "zeroconf"],
     python_requires='>=3.9'
 )
