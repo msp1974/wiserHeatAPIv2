@@ -22,4 +22,5 @@ setuptools.setup(
     ],
     install_requires=["ruamel.yaml==0.15.43, zeroconf"],
     python_requires='>=3.9',
+    install_requires=["ruamel.yaml==0.15.42"]
 )
