@@ -56,7 +56,7 @@ class _WiserSmartPlug(_WiserDevice):
         self._mode = device_type_data.get("Mode", TEXT_UNKNOWN)
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
         self._output_state = device_type_data.get("OutputState", TEXT_OFF)
-
+    
     def _send_command(self, cmd: dict):
         """
         Send control command to the smart plug
@@ -65,7 +65,7 @@ class _WiserSmartPlug(_WiserDevice):
         """
         result = self._wiser_rest_controller._send_command(WISERSMARTPLUG.format(self.id), cmd)
         if result:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Wiser smart plug - {} command successful".format(
                     inspect.stack()[1].function
                 )
@@ -149,7 +149,6 @@ class _WiserSmartPlug(_WiserDevice):
         result = self._send_command({"RequestOutput": TEXT_ON})
         if result:
             self._output_state = TEXT_ON
-            _LOGGER.info("Self output - " + "Yes" if self.is_on else "No")
         return result
 
     def turn_off(self) -> bool:
@@ -160,5 +159,4 @@ class _WiserSmartPlug(_WiserDevice):
         result = self._send_command({"RequestOutput": TEXT_OFF})
         if result:
             self._output_state = TEXT_OFF
-            _LOGGER.info("Self output - " + "Yes" if self.is_on else "No")
         return result

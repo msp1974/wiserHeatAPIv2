@@ -68,7 +68,7 @@ class _WiserSystem(object):
         """
         result = self._wiser_rest_controller._send_command(WISERSYSTEM, cmd)
         if result:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Wiser hub - {} command successful".format(inspect.stack()[1].function)
             )
         return result

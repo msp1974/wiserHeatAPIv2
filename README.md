@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.3
+# Drayton Wiser Hub API v2 v0.0.4
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -52,3 +52,6 @@ Updated setup.cfg
 0.0.3
 Restructured code
 Added Wiser moments integration (minimal at present)
+
+0.0.4
+Changed info logging to debug

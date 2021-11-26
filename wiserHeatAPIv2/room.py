@@ -159,7 +159,7 @@ class _WiserRoom(object):
         """
         result = self._wiser_rest_controller._send_command(WISERROOM.format(self.id), cmd)
         if result:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Wiser room - {} command successful - {}".format(inspect.stack()[1].function, result)
             )
         return result
@@ -343,7 +343,6 @@ class _WiserRoom(object):
         param duration: the duration to boost the room temperature in minutes
         return: boolean
         """
-        _LOGGER.info(f"Boost temp is {inc_temp}")
         if duration == 0:
             return self.cancel_boost()
         return self._send_command(

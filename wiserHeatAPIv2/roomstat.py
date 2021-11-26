@@ -55,7 +55,7 @@ class _WiserRoomStat(_WiserDevice):
         """
         result = self._wiser_rest_controller._send_command(WISERROOMSTAT.format(self.id), cmd)
         if result:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Wiser room stat - {} command successful".format(
                     inspect.stack()[1].function
                 )

@@ -43,7 +43,7 @@ class _WiserHotwater(object):
         """
         result = self._wiser_rest_controller._send_command(WISERHOTWATER.format(self.id), cmd)
         if result:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Wiser hot water - {} command successful".format(
                     inspect.stack()[1].function
                 )
@@ -107,7 +107,6 @@ class _WiserHotwater(object):
         Advance hot water schedule to the next scheduled time and state setting
         return: boolean
         """
-        # TODO: Fix this!
         if self.schedule.next_entry.setting == WiserHotWaterModeEnum.on.value:
             return self.override_state(WiserHotWaterModeEnum.on)
         else:

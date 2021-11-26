@@ -59,7 +59,7 @@ class _WiserSmartValve(_WiserDevice):
         """
         result = self._wiser_rest_controller._send_command(WISERSMARTVALVE.format(self.id), cmd)
         if result:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Wiser smart valve - {} command successful".format(
                     inspect.stack()[1].function
                 )

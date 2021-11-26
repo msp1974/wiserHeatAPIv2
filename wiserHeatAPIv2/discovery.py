@@ -37,7 +37,7 @@ class WiserDiscovery(object):
                         "name": info.server.replace(".local.", ""),
                         "hostname": info.server.replace(".local.", ".local").lower(),
                     }
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Discovered Hub {} with IP Address {}".format(
                             info.server.replace(".local.", ""),
                             addresses[0].replace(":80", ""),

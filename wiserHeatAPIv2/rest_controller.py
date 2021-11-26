@@ -150,7 +150,7 @@ class _WiserRestController(object):
         return: boolean
         """
         url = WISERHUBDOMAIN.format(self._wiser_connection.host) + url
-        _LOGGER.info(
+        _LOGGER.debug(
             "Sending command to url: {} with parameters {}".format(url, command_data)
         )
         
