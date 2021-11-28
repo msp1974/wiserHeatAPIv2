@@ -1,4 +1,5 @@
 from . import _LOGGER
+import enum
 
 from .devices import _WiserDeviceCollection
 from .helpers import _WiserTemperatureFunctions as tf
@@ -9,13 +10,19 @@ from .const import (
     TEMP_MINIMUM,
     TEMP_MAXIMUM,
     TEMP_OFF,
+    TEXT_AUTO,
     TEXT_MANUAL,
     TEXT_OFF,
     TEXT_ON,
     TEXT_UNKNOWN,
-    WiserHeatingModeEnum,
     WISERROOM
 )
+
+class WiserHeatingModeEnum(enum.Enum):
+    off = TEXT_OFF
+    auto = TEXT_AUTO
+    manual = TEXT_MANUAL
+
 
 from datetime import datetime, timezone
 import inspect
@@ -144,12 +151,12 @@ class _WiserRoom(object):
         self._name = room.get("Name")
         self._window_detection_active = room.get("WindowDetectionActive", TEXT_UNKNOWN)
 
-    def _effective_heating_mode(self, mode: str, temp: float) -> WiserHeatingModeEnum:
-        if mode == WiserHeatingModeEnum.manual.value and temp == TEMP_OFF:
-            return WiserHeatingModeEnum.off
-        elif mode == WiserHeatingModeEnum.manual.value:
-            return WiserHeatingModeEnum.manual
-        return WiserHeatingModeEnum.auto
+    def _effective_heating_mode(self, mode: str, temp: float) -> str:
+        if mode.casefold() == TEXT_MANUAL.casefold() and temp == TEMP_OFF:
+            return TEXT_OFF
+        elif mode.casefold() == TEXT_MANUAL.casefold():
+            return TEXT_MANUAL
+        return TEXT_AUTO
 
     def _send_command(self, cmd: dict):
         """
@@ -165,7 +172,13 @@ class _WiserRoom(object):
         return result
 
     @property
+    def available_modes(self):
+        """Get available heating modes"""
+        return [mode.value for mode in WiserHeatingModeEnum]
+
+    @property
     def away_mode_suppressed(self):
+        """Get if away mode is suppressed for room"""
         return self._data.get("AwayModeSuppressed", TEXT_UNKNOWN)
 
     @property
@@ -254,24 +267,27 @@ class _WiserRoom(object):
         return tf._from_wiser_temp(self._data.get("ManualSetPoint", TEMP_MINIMUM))
 
     @property
-    def mode(self) -> WiserHeatingModeEnum:
+    def mode(self) -> str:
         """Get or set current mode for the room (Off, Manual, Auto)"""
-        return self._mode
+        return WiserHeatingModeEnum[self._mode.lower()].value
 
     @mode.setter
-    def mode(self, mode: WiserHeatingModeEnum):
-        if mode == WiserHeatingModeEnum.off:
+    def mode(self, mode: str):
+        if mode.casefold() == WiserHeatingModeEnum.off.value.casefold():
             self.set_manual_temperature(TEMP_OFF)
-        elif mode == WiserHeatingModeEnum.manual:
-            if self._send_command({"Mode": TEXT_MANUAL}):
+        elif mode.casefold() == WiserHeatingModeEnum.manual.value.casefold():
+            if self._send_command({"Mode": WiserHeatingModeEnum.manual.value}):
                 if self.current_target_temperature == TEMP_OFF:
                     self.set_target_temperature(self.scheduled_target_temperature)
-        elif mode == WiserHeatingModeEnum.auto:
+        elif mode.casefold() == WiserHeatingModeEnum.auto.value.casefold():
             if self.is_override:
                 self.cancel_overrides()
             self._send_command({"Mode": WiserHeatingModeEnum.auto.value})
-            
-        self._mode = mode
+        else:
+            raise ValueError(
+                f"{mode} is not a valid Heating mode.  Valid modes are {self.available_modes}"
+            )
+        self._mode = WiserHeatingModeEnum[mode.lower()].value
 
     @property
     def name(self) -> str:
@@ -402,8 +418,8 @@ class _WiserRoom(object):
         param temp: the temperature to set in C
         return: boolean
         """
-        if self.mode != WiserHeatingModeEnum.manual:
-            self.mode = WiserHeatingModeEnum.manual
+        if self.mode != WiserHeatingModeEnum.manual.value:
+            self.mode = WiserHeatingModeEnum.manual.value
         return self.set_target_temperature(temp)
 
     def schedule_advance(self):

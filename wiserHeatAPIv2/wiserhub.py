@@ -28,8 +28,6 @@ from .const import (
     TEMP_MINIMUM,
     TEMP_MAXIMUM,
     TEMP_OFF,
-    WiserHeatingModeEnum,
-    WiserHotWaterModeEnum,
     WiserUnitsEnum,
     WISERHUBDOMAIN,
     WISERHUBNETWORK,

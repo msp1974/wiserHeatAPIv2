@@ -26,6 +26,7 @@ TEXT_AUTO = "Auto"
 TEXT_DEGREESC = "DegreesC"
 TEXT_HEATING = "Heating"
 TEXT_MANUAL = "Manual"
+TEXT_NO_CHANGE = "NoChange"
 TEXT_OFF = "Off"
 TEXT_ON = "On"
 TEXT_ONOFF = "OnOff"
@@ -54,28 +55,6 @@ WISERROOMSTAT = "RoomStat/{}"
 WISERSMARTPLUG = "SmartPlug/{}"
 
 # Enums
-class WiserHeatingModeEnum(enum.Enum):
-    off = TEXT_OFF
-    auto = TEXT_AUTO
-    manual = TEXT_MANUAL
-
-
-class WiserHotWaterModeEnum(enum.Enum):
-    off = TEXT_OFF
-    on = TEXT_ON
-    auto = TEXT_AUTO
-
-class WiserSmartPlugModeEnum(enum.Enum):
-    off = TEXT_OFF
-    on = TEXT_ON
-    auto = TEXT_AUTO
-
-
-class WiserAwayActionEnum(enum.Enum):
-    off = "Off"
-    no_change = "NoChange"
-
-
 class WiserUnitsEnum(enum.Enum):
     imperial = "imperial"
     metric = "metric"
