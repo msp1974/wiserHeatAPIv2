@@ -64,10 +64,7 @@ class _WiserSmartPlug(_WiserDevice):
         self._device_type_data = device_type_data
         self._schedule = schedule
         self._away_action = device_type_data.get("AwayAction", TEXT_UNKNOWN)
-        self._mode = self._effective_mode(
-            device_type_data.get("Mode", TEXT_UNKNOWN),
-            device_type_data.get("OutputState", TEXT_UNKNOWN)
-        )
+        self._mode = device_type_data.get("Mode", TEXT_UNKNOWN)
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
         self._output_state = device_type_data.get("OutputState", TEXT_OFF)
 
