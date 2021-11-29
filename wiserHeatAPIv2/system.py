@@ -1,7 +1,6 @@
 from . import _LOGGER
 
 from .device import _WiserSignalStrength
-from .devices import _WiserDeviceCollection
 from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 
