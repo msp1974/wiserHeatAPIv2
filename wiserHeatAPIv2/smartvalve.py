@@ -1,7 +1,6 @@
 from . import _LOGGER
 
-from .helpers import _WiserBattery
-from .device import _WiserDevice
+from .device import _WiserDevice, _WiserBattery
 from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 
