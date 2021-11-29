@@ -75,9 +75,7 @@ class WiserAPI(object):
         self._system = None
 
         # Log initialisation info
-        _LOGGER.info("WiserHub API Initialised : Version {}".format(__VERSION__))
-        _LOGGER.info("Units set to {}".format(self._wiser_api_connection.units.name.title()))
-        
+        _LOGGER.info(f"WiserHub API v{__VERSION__} Initialised - Host: {host}, Units: {self._wiser_api_connection.units.name.title()}")
 
         # Read hub data if hub IP and secret exist
         if (
