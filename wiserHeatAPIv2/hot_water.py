@@ -122,7 +122,10 @@ class _WiserHotwater(object):
     @property
     def mode(self) -> str:
         """Get or set the current hot water mode (On, Off or Auto)"""
-        return WiserHotWaterModeEnum[self._mode.lower()].value
+        try:
+            return WiserHotWaterModeEnum[self._mode.lower()].value
+        except KeyError:
+            return None
 
     @mode.setter
     def mode(self, mode: str):
