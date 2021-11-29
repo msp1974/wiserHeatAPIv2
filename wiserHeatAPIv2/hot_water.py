@@ -1,5 +1,6 @@
 from . import _LOGGER
 import enum
+from datetime import datetime
 from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
@@ -16,7 +17,8 @@ from .const import (
 )
 
 class WiserHotWaterModeEnum(enum.Enum):
-    manual = TEXT_MANUAL
+    on = TEXT_ON
+    off = TEXT_OFF
     auto = TEXT_AUTO
 
 import inspect
@@ -29,7 +31,7 @@ class _WiserHotwater(object):
         self._wiser_rest_controller = wiser_rest_controller
         self._data = hw_data
         self._schedule = schedule
-        self._mode = self._data.get("Mode", TEXT_AUTO)
+        self._mode = self._enumerate_mode(self._data.get("Mode", TEXT_AUTO), self._data.get("ManualWaterHeatingState", TEXT_OFF))
 
     def _send_command(self, cmd: dict):
         """
@@ -52,9 +54,32 @@ class _WiserHotwater(object):
                 return True
         return False
 
+    def _enumerate_mode(self, mode: str, state: str):
+        if mode == TEXT_MANUAL:
+            return WiserHotWaterModeEnum[state.lower()].value
+        return WiserHotWaterModeEnum[mode.lower()].value
+
     @property
     def available_modes(self) -> str:
          return [mode.value for mode in WiserHotWaterModeEnum]
+
+    @property
+    def away_mode_suppressed(self):
+        """Get if away mode is suppressed for room"""
+        return self._data.get("AwayModeSuppressed", TEXT_UNKNOWN)
+
+    @property
+    def boost_end_time(self) -> datetime:
+        """Get boost end timestamp"""
+        return datetime.fromtimestamp(self._data.get("OverrideTimeoutUnixTime", 0))
+
+    @property
+    def boost_time_remaining(self) -> datetime:
+        """Get boost time remaining"""
+        if self.is_boosted:
+            return (self.boost_end_time - datetime.now()).total_seconds()
+        else:
+            return 0
 
     @property
     def current_control_source(self) -> str:
@@ -78,7 +103,7 @@ class _WiserHotwater(object):
     @property
     def is_boosted(self) -> bool:
         """Get if the hot water is currently boosted"""
-        return True if self._data.get("OverrideTimeoutUnixTime", None) else False
+        return True if "Boost" in self._data.get("HotWaterDescription", None) else False
 
     @property
     def is_heating(self) -> bool:
@@ -86,14 +111,27 @@ class _WiserHotwater(object):
         return True if self._data.get("WaterHeatingState") == TEXT_ON else False
 
     @property
+    def is_override(self) -> bool:
+        """Get if the room has an override"""
+        return (
+            True
+            if self._data.get("OverrideType", TEXT_UNKNOWN) not in  [TEXT_UNKNOWN, "None"]
+            else False
+        )
+
+    @property
     def mode(self) -> str:
-        """Get or set the current hot water mode (Manual or Auto)"""
+        """Get or set the current hot water mode (On, Off or Auto)"""
         return WiserHotWaterModeEnum[self._mode.lower()].value
 
     @mode.setter
     def mode(self, mode: str):
         if self._validate_mode(mode):
-            self._send_command({"Mode": mode})
+            if WiserHotWaterModeEnum[mode.lower()].value in [TEXT_ON, TEXT_OFF]:
+                if self._send_command({"Mode": TEXT_MANUAL}):
+                    self.override_state(mode)
+            else:
+                self._send_command({"Mode": mode})
         else:
             raise ValueError(
                 f"{mode} is not a valid Hot Water mode.  Valid modes are {self.available_modes}"
