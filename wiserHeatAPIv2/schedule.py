@@ -205,7 +205,7 @@ class _WiserSchedule(object):
                 schedule_data,
             )
             if result:
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Wiser schedule - {} command successful".format(
                         inspect.stack()[1].function
                     )
