@@ -32,7 +32,7 @@ class _WiserBattery(object):
         if self._data.get("ProductType") == "RoomStat" and self.level != "No Battery":
             return min(
                 100,
-                int(
+                round(
                     (
                         (self.voltage - ROOMSTAT_MIN_BATTERY_LEVEL)
                         / (ROOMSTAT_FULL_BATTERY_LEVEL - ROOMSTAT_MIN_BATTERY_LEVEL)
@@ -43,7 +43,7 @@ class _WiserBattery(object):
         elif self._data.get("ProductType") == "iTRV" and self.level != "No Battery":
             return min(
                 100,
-                int(
+                round(
                     (
                         (self.voltage - TRV_MIN_BATTERY_LEVEL)
                         / (TRV_FULL_BATTERY_LEVEL - TRV_MIN_BATTERY_LEVEL)
