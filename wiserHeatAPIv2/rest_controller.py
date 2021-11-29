@@ -65,31 +65,29 @@ class _WiserRestController(object):
 
         except requests.exceptions.ConnectTimeout:
             raise WiserHubConnectionError(
-                "Connection timed out trying to update from Wiser Hub"
+                f"Connection timed out trying to update from Wiser Hub {self._wiser_connection.host}"
             )
 
         except requests.HTTPError as ex:
             if ex.response.status_code == 401:
                 raise WiserHubAuthenticationError(
-                    "Error authenticating to Wiser Hub.  Check your secret key"
+                    f"Error authenticating to Wiser Hub {self._wiser_connection.host}.  Check your secret key"
                 )
             elif ex.response.status_code == 404:
-                raise WiserHubRESTError("Rest endpoint not found on Wiser Hub")
+                raise WiserHubRESTError(f"Rest endpoint not found on Wiser Hub {self._wiser_connection.host}")
             else:
                 raise WiserHubRESTError(
-                    "Unknown error getting data from Wiser Hub.  Error code is: {}".format(
-                        ex.response.status_code
-                    )
+                    f"Unknown error getting data from Wiser Hub {self._wiser_connection.host}.  Error code is: {ex.response.status_code}"
                 )
 
         except requests.exceptions.ConnectionError:
             raise WiserHubConnectionError(
-                "Connection error trying to update from Wiser Hub"
+                f"Connection error trying to update from Wiser Hub {self._wiser_connection.host}"
             )
 
         except requests.exceptions.ChunkedEncodingError:
             raise WiserHubConnectionError(
-                "Chunked Encoding error trying to update from Wiser Hub"
+                f"Chunked Encoding error trying to update from Wiser Hub {self._wiser_connection.host}"
             )
 
         return response.json()
