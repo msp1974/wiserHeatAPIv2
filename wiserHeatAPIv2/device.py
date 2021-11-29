@@ -29,6 +29,11 @@ class _WiserDevice(object):
         return self._data.get("ModelIdentifier", TEXT_UNKNOWN)
 
     @property
+    def name(self) -> str:
+        """Get name of device - ProductType + id"""
+        return f"{self.product_type}-{self.id}"
+
+    @property
     def node_id(self) -> int:
         """Get zigbee node id of device"""
         return self._data.get("NodeId", 0)
@@ -52,6 +57,7 @@ class _WiserDevice(object):
     def signal(self) -> object:
         """Get zwave network information"""
         return self._signal
+
 
 class _WiserBattery(object):
     """Data structure for battery information for a Wiser device that is powered by batteries"""
@@ -96,7 +102,6 @@ class _WiserBattery(object):
     def voltage(self) -> float:
         """Get the battery voltage"""
         return self._data.get("BatteryVoltage", 0) / 10
-
 
 
 class _WiserSignalStrength(object):
