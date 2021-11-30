@@ -4,7 +4,7 @@ from .device import _WiserDevice, _WiserBattery
 from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 
-from .const import WISERSMARTVALVE
+from .const import WISERSMARTVALVE, WISERDEVICE
 
 import inspect
 
@@ -50,13 +50,16 @@ class _WiserSmartValve(_WiserDevice):
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._indentify_active = data.get("IdentifyActive", False)
 
-    def _send_command(self, cmd: dict):
+    def _send_command(self, cmd: dict, device_level: bool = False):
         """
         Send control command to the smart valve
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        result = self._wiser_rest_controller._send_command(WISERSMARTVALVE.format(self.id), cmd)
+        if device_level:
+            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.id), cmd)
+        else:
+            result = self._wiser_rest_controller._send_command(WISERSMARTVALVE.format(self.id), cmd)
         if result:
             _LOGGER.debug(
                 "Wiser smart valve - {} command successful".format(
@@ -77,7 +80,7 @@ class _WiserSmartValve(_WiserDevice):
 
     @device_lock_enabled.setter
     def device_lock_enabled(self, enable: bool):
-        if self._send_command({"DeviceLockEnabled": enable}):
+        if self._send_command({"DeviceLockEnabled": enable}, True):
             self._device_lock_enabled = enable
 
     @property
@@ -97,7 +100,7 @@ class _WiserSmartValve(_WiserDevice):
 
     @identify.setter
     def identify(self, enable: bool = False):
-        if self._send_command({"Identify": enable}):
+        if self._send_command({"Identify": enable}, True):
             self._indentify_active = enable
 
     @property

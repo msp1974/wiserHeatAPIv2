@@ -7,6 +7,7 @@ from .schedule import _WiserSchedule
 
 from .const import (
     WISERSMARTPLUG,
+    WISERDEVICE,
     TEXT_UNKNOWN,
     TEXT_AUTO,
     TEXT_MANUAL,
@@ -68,13 +69,16 @@ class _WiserSmartPlug(_WiserDevice):
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
         self._output_state = device_type_data.get("OutputState", TEXT_OFF)
 
-    def _send_command(self, cmd: dict):
+    def _send_command(self, cmd: dict, device_level: bool = False):
         """
         Send control command to the smart plug
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        result = self._wiser_rest_controller._send_command(WISERSMARTPLUG.format(self.id), cmd)
+        if device_level:
+            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.id), cmd)
+        else:
+            result = self._wiser_rest_controller._send_command(WISERSMARTPLUG.format(self.id), cmd)
         if result:
             _LOGGER.debug(
                 "Wiser smart plug - {} command successful".format(
@@ -132,6 +136,16 @@ class _WiserSmartPlug(_WiserDevice):
     def current_delivered(self) -> int:
         """Get the amount of current throught the plug over time"""
         return self._device_type_data.get("CurrentSummationDelivered",0)
+
+    @property
+    def device_lock_enabled(self) -> bool:
+        """Get or set smart plug device lock"""
+        return self._device_lock_enabled
+
+    @device_lock_enabled.setter
+    def device_lock_enabled(self, enable: bool):
+        if self._send_command({"DeviceLockEnabled": enable}, True):
+            self._device_lock_enabled = enable
 
     @property
     def instantaneous_demand(self) -> int:
