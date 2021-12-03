@@ -5,3 +5,4 @@ wiserHeatAPIv2.egg-info
 .idea
 /t.py
 params.py
+venv
