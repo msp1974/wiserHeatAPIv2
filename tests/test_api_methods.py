@@ -80,7 +80,6 @@ def test_methods(h: wiserhub.WiserAPI):
             rm_sched = rm.schedule.schedule_data
             fn(room.schedule, "copy_schedule", {"to_id": rm.schedule.id})
             #Set it back to original
-            #time.sleep(10)
             fn(rm.schedule, "set_schedule", {"schedule_data": rm_sched})
 
     else:
