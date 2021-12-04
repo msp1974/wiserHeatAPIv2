@@ -1,4 +1,6 @@
 *.pyc
+*.yaml
+*.json
 build
 dist
 wiserHeatAPIv2.egg-info
