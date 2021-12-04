@@ -1,9 +1,9 @@
 from params import HOST, KEY
 
 import sys
+sys.path.append('/home/mark/development/wiserHeatAPIv2/')
 
 from wiserHeatAPIv2.const import TEXT_UNKNOWN
-sys.path.append('/home/mark/development/wiserHeatAPIv2/')
 from wiserHeatAPIv2 import wiserhub
 
 BOOL = [True, False]

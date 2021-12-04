@@ -1,6 +1,7 @@
 from . import _LOGGER
 
-from .device import _WiserDevice, _WiserBattery
+from .device import _WiserDevice
+from .helpers import _WiserBattery
 from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 
@@ -10,33 +11,6 @@ from .const import (
 )
 
 import inspect
-
-class _WiserRoomStatCollection(object):
-    """Class holding all wiser room stats"""
-
-    def __init__(self):
-        self._roomstats = []
-
-    @property
-    def all(self) -> dict:
-        return list(self._roomstats)
-
-    @property
-    def count(self) -> int:
-        return len(self.all)
-
-    # Roomstats
-    def get_by_id(self, id: int):
-        """
-        Gets a RoomStat object from the RoomStats id
-        param id: id of room stat
-        return: _WiserRoomStat object
-        """
-        for roomstat in self.all:
-            if roomstat.id == id:
-                return roomstat
-        return None
-
 
 class _WiserRoomStat(_WiserDevice):
     """Class representing a Wiser Room Stat device"""
@@ -48,7 +22,7 @@ class _WiserRoomStat(_WiserDevice):
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._indentify_active = data.get("IdentifyActive", False)
 
-    def _send_command(self, cmd: dict, device_level: bool = False):
+    def _send_command(self, cmd: dict, device_level: bool = False) -> bool:
         """
         Send control command to the room stat
         param cmd: json command structure
@@ -67,7 +41,7 @@ class _WiserRoomStat(_WiserDevice):
         return result
 
     @property
-    def battery(self):
+    def battery(self) -> _WiserBattery:
         """Get the battery information for the room stat"""
         return _WiserBattery(self._data)
 
@@ -112,3 +86,30 @@ class _WiserRoomStat(_WiserDevice):
         """
         if self._send_command({"Identify": enable}, True):
             self._indentify_active = enable
+
+
+class _WiserRoomStatCollection(object):
+    """Class holding all wiser room stats"""
+
+    def __init__(self):
+        self._roomstats = []
+
+    @property
+    def all(self) -> list:
+        return list(self._roomstats)
+
+    @property
+    def count(self) -> int:
+        return len(self.all)
+
+    # Roomstats
+    def get_by_id(self, id: int) -> _WiserRoomStat:
+        """
+        Gets a RoomStat object from the RoomStats id
+        param id: id of room stat
+        return: _WiserRoomStat object
+        """
+        for roomstat in self.all:
+            if roomstat.id == id:
+                return roomstat
+        return None

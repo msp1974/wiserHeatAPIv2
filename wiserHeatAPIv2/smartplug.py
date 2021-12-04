@@ -67,6 +67,7 @@ class _WiserSmartPlug(_WiserDevice):
         self._away_action = device_type_data.get("AwayAction", TEXT_UNKNOWN)
         self._mode = device_type_data.get("Mode", TEXT_UNKNOWN)
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
+        self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._output_state = device_type_data.get("OutputState", TEXT_OFF)
 
     def _send_command(self, cmd: dict, device_level: bool = False):

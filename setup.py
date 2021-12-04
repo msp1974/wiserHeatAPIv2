@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="wiserHeatAPIv2", # Replace with your own username
-    version="0.0.4",
+    version="0.0.5",
     author="Mark Parker",
     author_email="msparker@sky.com",
     description="An API for controlling the Drayton Wiser Heating system",
@@ -20,6 +20,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["ruamel.yaml==0.15.42", "zeroconf"],
-    python_requires='>=3.9'
+    install_requires=["ruamel.yaml==0.16.13", "zeroconf>=0.37.0", "requests>=2.26.0"],
+    python_requires='>=3.10'
 )

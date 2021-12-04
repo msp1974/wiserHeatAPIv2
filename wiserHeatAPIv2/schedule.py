@@ -12,53 +12,6 @@ from .const import (SPECIAL_DAYS, TEMP_MINIMUM, TEMP_OFF, TEXT_DEGREESC,
 from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 
-class _WiserScheduleCollection(object):
-    """Class holding all wiser schedule objects"""
-
-    def __init__(self, wiser_rest_controller, schedule_data: dict):
-        self._wiser_rest_controller = wiser_rest_controller
-        self._schedules = []
-
-        self._build(schedule_data)
-
-    def _build(self, schedule_data):
-        for schedule_type in schedule_data:
-            for schedule in schedule_data.get(schedule_type):
-                self._schedules.append(_WiserSchedule(self._wiser_rest_controller, schedule_type, schedule))
-
-    @property
-    def all(self):
-        return self._schedules
-
-    @property
-    def count(self) -> int:
-        return len(self.all)
-
-    # Smartplugs
-    def get_by_id(self, id: int):
-        """
-        Gets a schedule object from the schedules id
-        param id: id of schedule
-        return: _WiserSchedule object
-        """
-        #try:
-        return [schedule for schedule in self.all if schedule.id == id][0]
-        #except IndexError:
-        #    return None
-       
-
-    def get_by_name(self, name: str):
-        """
-        Gets a schedule object from the schedules name
-        (room name, smart plug name, hotwater)
-        param name: name of schedule
-        return: _WiserSchedule object
-        """
-        try:
-            return [schedule for schedule in self.all if schedule.name == name][0]
-        except IndexError:
-            return None
-
 class _WiserSchedule(object):
     """Class representing a wiser Schedule"""
 
@@ -355,3 +308,49 @@ class _WiserScheduleNext:
         if self._schedule_type == TEXT_ONOFF:
             return self._data.get("State")
         return None
+
+
+class _WiserScheduleCollection(object):
+    """Class holding all wiser schedule objects"""
+
+    def __init__(self, wiser_rest_controller, schedule_data: dict):
+        self._wiser_rest_controller = wiser_rest_controller
+        self._schedules = []
+
+        self._build(schedule_data)
+
+    def _build(self, schedule_data):
+        for schedule_type in schedule_data:
+            for schedule in schedule_data.get(schedule_type):
+                self._schedules.append(_WiserSchedule(self._wiser_rest_controller, schedule_type, schedule))
+
+    @property
+    def all(self) -> list:
+        return self._schedules
+
+    @property
+    def count(self) -> int:
+        return len(self.all)
+
+    def get_by_id(self, id: int) -> _WiserSchedule | None:
+        """
+        Gets a schedule object from the schedules id
+        param id: id of schedule
+        return: _WiserSchedule object
+        """
+        try:
+            return [schedule for schedule in self.all if schedule.id == id][0]
+        except IndexError:
+            return None
+
+    def get_by_name(self, name: str) -> _WiserSchedule | None:
+        """
+        Gets a schedule object from the schedules name
+        (room name, smart plug name, hotwater)
+        param name: name of schedule
+        return: _WiserSchedule object
+        """
+        try:
+            return [schedule for schedule in self.all if schedule.name == name][0]
+        except IndexError:
+            return None
