@@ -28,34 +28,6 @@ class WiserAwayActionEnum(enum.Enum):
 import inspect
 
 
-class _WiserSmartPlugCollection(object):
-    """Class holding all wiser smart plugs"""
-
-    def __init__(self):
-        self._smartplugs = []
-
-    @property
-    def all(self) -> dict:
-        return list(self._smartplugs)
-
-    @property
-    def count(self) -> int:
-        return len(self.all)
-
-    # Smartplugs
-    def get_by_id(self, id: int):
-        """
-        Gets a SmartPlug object from the SmartPlugs id
-        param id: id of smart plug
-        return: _WiserSmartPlug object
-        """
-        try:
-            return [smartplug for smartplug in self.all if smartplug.id == id][0]
-        except IndexError:
-            return None
-
-
-
 class _WiserSmartPlug(_WiserDevice):
     """Class representing a Wiser Smart Plug device"""
     
@@ -220,3 +192,31 @@ class _WiserSmartPlug(_WiserDevice):
         if result:
             self._output_state = TEXT_OFF
         return result
+
+class _WiserSmartPlugCollection(object):
+    """Class holding all wiser smart plugs"""
+
+    def __init__(self):
+        self._smartplugs = []
+
+    @property
+    def all(self) -> dict:
+        return list(self._smartplugs)
+
+    @property
+    def count(self) -> int:
+        return len(self.all)
+
+    # Smartplugs
+    def get_by_id(self, id: int) -> _WiserSmartPlug:
+        """
+        Gets a SmartPlug object from the SmartPlugs id
+        param id: id of smart plug
+        return: _WiserSmartPlug object
+        """
+        try:
+            return [smartplug for smartplug in self.all if smartplug.id == id][0]
+        except IndexError:
+            return None
+
+

@@ -9,30 +9,6 @@ from .rest_controller import _WiserRestController
 import inspect
 
 
-class _WiserMomentCollection(object):
-    
-    def __init__(self, wiser_rest_controller: _WiserRestController, moments_data: dict):
-        self._moments_data = moments_data
-        self._moments = []
-        self._wiser_rest_controller = wiser_rest_controller
-
-        self._build()
-
-    def _build(self):
-        for moment in self._moments_data:
-            self._moments.append(_WiserMoment(self._wiser_rest_controller, moment)) 
-    @property
-    def all(self) -> list:
-        return self._moments
-
-    def get_by_id(self, id: int):
-        try:
-            return [moment for moment in self.all if moment.id == id][0]
-        except IndexError:
-            return None
-
-
-
 class _WiserMoment(object):
 
     def __init__(self, wiser_rest_controller: _WiserRestController, moment_data: dict):
@@ -63,6 +39,30 @@ class _WiserMoment(object):
         """Activate moment"""
         if self._send_command({"TriggerMoment": self.id}):
             return True
+
+class _WiserMomentCollection(object):
+    
+    def __init__(self, wiser_rest_controller: _WiserRestController, moments_data: dict):
+        self._moments_data = moments_data
+        self._moments = []
+        self._wiser_rest_controller = wiser_rest_controller
+
+        self._build()
+
+    def _build(self):
+        for moment in self._moments_data:
+            self._moments.append(_WiserMoment(self._wiser_rest_controller, moment)) 
+            
+    @property
+    def all(self) -> list:
+        return self._moments
+
+    def get_by_id(self, id: int) -> _WiserMoment:
+        try:
+            return [moment for moment in self.all if moment.id == id][0]
+        except IndexError:
+            return None
+
 
 
 

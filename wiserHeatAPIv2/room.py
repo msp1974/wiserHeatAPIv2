@@ -28,114 +28,6 @@ from datetime import datetime, timezone
 import inspect
 
 
-class _WiserRoomCollection(object):
-    """Class holding all wiser room objects"""
-
-    def __init__(
-        self, wiser_rest_controller: _WiserRestController, room_data: dict,
-        schedules: _WiserScheduleCollection, devices: _WiserDeviceCollection
-    ):
-
-        self._wiser_rest_controller = wiser_rest_controller
-        self._room_data = room_data
-        self._schedules = schedules.all
-        self._devices = devices
-        self._rooms = []
-
-        self._build()
-
-    def _build(self):
-        # Add room objects
-        #TODO: Make list of device id and also list of iTRVs, Roomstats and Smartplugs
-        for room in self._room_data:
-            schedule = [
-                schedule
-                for schedule in self._schedules
-                if schedule.id == room.get("ScheduleId")
-            ]
-            devices = [
-                device
-                for device in self._devices.all
-                if (
-                    device.id in room.get("SmartValveIds", ["-1"])
-                    or device.id == room.get("RoomStatId", "-1")
-                    or device.id
-                    in [
-                        smartplug.id
-                        for smartplug in self._devices._smartplugs_collection.all
-                        if smartplug.room_id == room.get("id", 0)
-                    ]
-                )
-            ]
-            self._rooms.append(
-                _WiserRoom(
-                    self._wiser_rest_controller,
-                    room,
-                    schedule[0] if len(schedule) > 0 else None,
-                    devices,
-                )
-            )
-
-
-    @property
-    def all(self):
-        return self._rooms
-
-    @property
-    def count(self) -> int:
-        return len(self._rooms)
-
-    def add(self, name):
-        # call domain/room with post and name param
-        raise NotImplemented
-
-    def delete(self, id: int):
-        # call room/id with delete
-        raise NotImplemented
-
-    def get_by_id(self, id: int):
-        """
-        Gets a room object for the room by id of room
-        param id: the id of the room
-        return: _WiserRoom object
-        """
-        try:
-            return [room for room in self._rooms if room.id == id][0]
-        except IndexError:
-            return None
-
-    def get_by_name(self, name: str):
-        """
-        Gets a room object for the room by name of room
-        param name: the name of the room
-        return: _WiserRoom object
-        """
-        try:
-            return [room for room in self._rooms if room.name.lower() == name.lower()][0]
-        except IndexError:
-            return None
-
-    def get_by_schedule_id(self, schedule_id: int):
-        """
-        Gets a room object for the room a schedule id belongs to
-        param schedule_id: the id of the schedule
-        return: _WiserRoom object
-        """
-        return [room for room in self._rooms if room.schedule_id == id][0]
-
-    def get_by_device_id(self, device_id: int):
-        """
-        Gets a room object for the room a device id belongs to
-        param device_id: the id of the device
-        return: _WiserRoom object
-        """
-        for room in self._rooms:
-            for device in room.devices:
-                if device.id == device_id:
-                    return room
-        return None
-
-    
 class _WiserRoom(object):
     """Class representing a Wiser Room entity"""
 
@@ -381,7 +273,7 @@ class _WiserRoom(object):
         if self.is_boosted:
             return self.cancel_overrides()
         else:
-            return False
+            return True
 
     def set_target_temperature(self, temp: float) -> bool:
         """
@@ -430,7 +322,7 @@ class _WiserRoom(object):
         return: boolean
         """
         return self.set_target_temperature(
-            tf._from_wiser_temp(self.schedule.next_entry.setting)
+            tf._from_wiser_temp(self.schedule.next.setting)
         )
 
     def cancel_overrides(self) -> bool:
@@ -439,3 +331,112 @@ class _WiserRoom(object):
         return: boolean
         """
         return self._send_command({"RequestOverride": {"Type": "None"}})
+
+
+class _WiserRoomCollection(object):
+    """Class holding all wiser room objects"""
+
+    def __init__(
+        self, wiser_rest_controller: _WiserRestController, room_data: dict,
+        schedules: _WiserScheduleCollection, devices: _WiserDeviceCollection
+    ):
+
+        self._wiser_rest_controller = wiser_rest_controller
+        self._room_data = room_data
+        self._schedules = schedules.all
+        self._devices = devices
+        self._rooms = []
+
+        self._build()
+
+    def _build(self):
+        # Add room objects
+        for room in self._room_data:
+            schedule = [
+                schedule
+                for schedule in self._schedules
+                if schedule.id == room.get("ScheduleId")
+            ]
+            devices = [
+                device
+                for device in self._devices.all
+                if (
+                    device.id in room.get("SmartValveIds", ["-1"])
+                    or device.id == room.get("RoomStatId", "-1")
+                    or device.id
+                    in [
+                        smartplug.id
+                        for smartplug in self._devices._smartplugs_collection.all
+                        if smartplug.room_id == room.get("id", 0)
+                    ]
+                )
+            ]
+            self._rooms.append(
+                _WiserRoom(
+                    self._wiser_rest_controller,
+                    room,
+                    schedule[0] if len(schedule) > 0 else None,
+                    devices,
+                )
+            )
+
+
+    @property
+    def all(self) -> list:
+        return self._rooms
+
+    @property
+    def count(self) -> int:
+        return len(self._rooms)
+
+    def add(self, name):
+        # call domain/room with post and name param
+        raise NotImplemented
+
+    def delete(self, id: int):
+        # call room/id with delete
+        raise NotImplemented
+
+    def get_by_id(self, id: int) -> _WiserRoom:
+        """
+        Gets a room object for the room by id of room
+        param id: the id of the room
+        return: _WiserRoom object
+        """
+        try:
+            return [room for room in self._rooms if room.id == id][0]
+        except IndexError:
+            return None
+
+    def get_by_name(self, name: str) -> _WiserRoom:
+        """
+        Gets a room object for the room by name of room
+        param name: the name of the room
+        return: _WiserRoom object
+        """
+        try:
+            return [room for room in self._rooms if room.name.lower() == name.lower()][0]
+        except IndexError:
+            return None
+
+    def get_by_schedule_id(self, schedule_id: int) -> _WiserRoom:
+        """
+        Gets a room object for the room a schedule id belongs to
+        param schedule_id: the id of the schedule
+        return: _WiserRoom object
+        """
+        return [room for room in self._rooms if room.schedule_id == schedule_id][0]
+
+    def get_by_device_id(self, device_id: int) -> _WiserRoom:
+        """
+        Gets a room object for the room a device id belongs to
+        param device_id: the id of the device
+        return: _WiserRoom object
+        """
+        for room in self._rooms:
+            for device in room.devices:
+                if device.id == device_id:
+                    return room
+        return None
+
+    

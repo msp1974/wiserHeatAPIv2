@@ -211,7 +211,6 @@ class _WiserSchedule(object):
         param toId: id of schedule to copy to
         return: boolen - true = successfully set, false = failed to set
         """
-        #TODO Remove name field from schedule!!!  Causing name issue when copying!!!
         return self._send_schedule(self._remove_schedule_elements(self._schedule_data), to_id)
 
     def save_schedule_to_file(self, schedule_file: str) -> bool:
@@ -225,7 +224,7 @@ class _WiserSchedule(object):
                 json.dump(self._schedule_data, file, indent=4)
             return True
         except Exception as ex:
-            _LOGGER.debug(ex)
+            _LOGGER.error(f"Error saving schedule to file: {ex}")
             return False
 
     def save_schedule_to_yaml_file(self, schedule_yaml_file: str) -> bool:
@@ -240,7 +239,7 @@ class _WiserSchedule(object):
                 yaml.dump(self._convert_from_wiser_schedule(self._schedule_data), file)
             return True
         except Exception as ex:
-            _LOGGER.debug(ex)
+            _LOGGER.error(f"Error saving schedule to yaml file: {ex}")
             return False
 
     def set_schedule(self, schedule_data: dict) -> bool:
@@ -265,7 +264,7 @@ class _WiserSchedule(object):
             _LOGGER.error(f"Error setting schedule from file: {ex}")
             return False
 
-    def set_schedule_from_yaml_file(self, schedule_file: str) -> bool:
+    def set_schedule_from_yaml_file(self, schedule_yaml_file: str) -> bool:
         """
         Set schedule from file.
         param schedule_file: file of yaml data respresenting a schedule
@@ -273,7 +272,7 @@ class _WiserSchedule(object):
         """
         try:
             yaml = YAML()
-            with open(schedule_file, "r") as file:
+            with open(schedule_yaml_file, "r") as file:
                 y = yaml.load(file)
                 s = self._convert_to_wiser_schedule(y)
                 self.set_schedule(s)
@@ -281,6 +280,7 @@ class _WiserSchedule(object):
         except Exception as ex:
             _LOGGER.error(f"Error setting schedule from yaml file: {ex}")
             return False
+
 
 class _WiserScheduleNext:
     """Data structure for schedule next entry data"""

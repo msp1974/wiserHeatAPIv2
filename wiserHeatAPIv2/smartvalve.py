@@ -9,37 +9,6 @@ from .const import WISERSMARTVALVE, WISERDEVICE
 import inspect
 
 
-class _WiserSmartValveCollection(object):
-    """Class holding all wiser smart valves"""
-
-    def __init__(self):
-        self._smartvalves = []
-
-    @property
-    def all(self) -> dict:
-        return list(self._smartvalves)
-
-    @property
-    def count(self) -> int:
-        return len(self.all)
-
-    def get_by_id(self, id: int):
-        """
-        Gets a SmartValve object from the SmartValves id
-        param id: id of smart valve
-        return: _WiserSmartValve object
-        """
-        try:
-            return [
-                smartvalve for smartvalve in self.all if smartvalve.id == id
-            ][0]
-        except IndexError:
-            return None
-
-    def get_by_room_name(self, room_name:str):
-        pass
-    
-
 class _WiserSmartValve(_WiserDevice):
     """Class representing a Wiser Smart Valve device"""
 
@@ -112,3 +81,35 @@ class _WiserSmartValve(_WiserDevice):
     def percentage_demand(self) -> int:
         """Get the current percentage demand of the smart valve"""
         return self._device_type_data.get("PercentageDemand")
+        
+
+class _WiserSmartValveCollection(object):
+    """Class holding all wiser smart valves"""
+
+    def __init__(self):
+        self._smartvalves = []
+
+    @property
+    def all(self) -> dict:
+        return list(self._smartvalves)
+
+    @property
+    def count(self) -> int:
+        return len(self.all)
+
+    def get_by_id(self, id: int) -> _WiserSmartValve:
+        """
+        Gets a SmartValve object from the SmartValves id
+        param id: id of smart valve
+        return: _WiserSmartValve object
+        """
+        try:
+            return [
+                smartvalve for smartvalve in self.all if smartvalve.id == id
+            ][0]
+        except IndexError:
+            return None
+
+    def get_by_room_name(self, room_name:str) -> _WiserSmartValve:
+        pass
+    

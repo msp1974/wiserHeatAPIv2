@@ -185,3 +185,236 @@ class _WiserSignalStrength(object):
     def signal_strength(self) -> int:
         """Get the signal strength percent for the device"""
         return min(100, int(2 * (self.controller_reception_rssi + 100)))
+
+class _WiserNetwork:
+    """Data structure for network information for a Wiser Hub"""
+
+    def __init__(self, data: dict):
+        self._data = data
+        self._dhcp_status = data.get("DhcpStatus", {})
+        self._network_interface = data.get("NetworkInterface", {})
+
+    @property
+    def dhcp_mode(self) -> str:
+        """Get the current dhcp mode of the hub"""
+        return self._data.get("NetworkInterface", {}).get("DhcpMode", TEXT_UNKNOWN)
+
+    @property
+    def hostname(self) -> str:
+        """Get the host name of the hub"""
+        return self._data.get("NetworkInterface", {}).get("HostName", TEXT_UNKNOWN)
+
+    @property
+    def ip_address(self) -> str:
+        """Get the ip address of the hub"""
+        if self.dhcp_mode == "Client":
+            return self._dhcp_status.get("IPv4Address", TEXT_UNKNOWN)
+        else:
+            return self._network_interface.get("IPv4HostAddress", TEXT_UNKNOWN)
+
+    @property
+    def ip_subnet_mask(self) -> str:
+        """Get the subnet mask of the hub"""
+        if self.dhcp_mode == "Client":
+            return self._dhcp_status.get("IPv4SubnetMask", TEXT_UNKNOWN)
+        else:
+            return self._network_interface.get("IPv4SubnetMask", TEXT_UNKNOWN)
+
+    @property
+    def ip_gateway(self) -> str:
+        """Get the default gateway of the hub"""
+        if self.dhcp_mode == "Client":
+            return self._dhcp_status.get("IPv4DefaultGateway", TEXT_UNKNOWN)
+        else:
+            return self._network_interface.get("IPv4DefaultGateway", TEXT_UNKNOWN)
+
+    @property
+    def ip_primary_dns(self) -> str:
+        """Get the primary dns server of the hub"""
+        if self.dhcp_mode == "Client":
+            return self._dhcp_status.get("IPv4PrimaryDNS", TEXT_UNKNOWN)
+        else:
+            return self._network_interface.get("IPv4PrimaryDNS", TEXT_UNKNOWN)
+
+    @property
+    def ip_secondary_dns(self) -> str:
+        """Get the secondary dns server of the hub"""
+        if self.dhcp_mode == "Client":
+            return self._dhcp_status.get("IPv4SecondaryDNS", TEXT_UNKNOWN)
+        else:
+            return self._network_interface.get("IPv4SecondaryDNS", TEXT_UNKNOWN)
+
+    @property
+    def mac_address(self) -> str:
+        """Get the mac address of the hub wifi interface"""
+        return self._data.get("MacAddress", TEXT_UNKNOWN)
+
+    @property
+    def signal_percent(self) -> int:
+        """Get the wifi signal strength percentage"""
+        return min(100, int(2 * (self._data.get("RSSI", {}).get("Current", 0) + 100)))
+
+    @property
+    def signal_rssi(self) -> int:
+        """Get the wifi signal rssi value"""
+        return self._data.get("RSSI", {}).get("Current", 0)
+
+    @property
+    def security_mode(self) -> str:
+        """Get the wifi security mode"""
+        return self._data.get("SecurityMode", TEXT_UNKNOWN)
+
+    @property
+    def ssid(self) -> str:
+        """Get the ssid of the wifi network the hub is connected to"""
+        return self._data.get("SSID", TEXT_UNKNOWN)
+
+
+class _WiserCloud:
+    """Data structure for cloud information for a Wiser Hub"""
+
+    def __init__(self, cloud_status: str, data: dict):
+        self._cloud_status = cloud_status
+        self._data = data
+
+    @property
+    def api_host(self) -> str:
+        """Get the host name of the wiser cloud"""
+        return self._data.get("WiserApiHost", TEXT_UNKNOWN)
+
+    @property
+    def bootstrap_api_host(self) -> str:
+        """Get the bootstrap host name of the wiser cloud"""
+        return self._data.get("BootStrapApiHost", TEXT_UNKNOWN)
+
+    @property
+    def connected_to_cloud(self) -> bool:
+        """Get the hub connection status to the wiser cloud"""
+        return True if self._cloud_status == "Connected" else False
+
+    @property
+    def connection_status(self) -> str:
+        """Get the hub cloud connection status text"""
+        return self._cloud_status
+
+    @property
+    def detailed_publishing_enabled(self) -> bool:
+        """Get if detailed published is enabled"""
+        return self._data.get("DetailedPublishing", False)
+
+    @property
+    def diagnostic_telemetry_enabled(self) -> bool:
+        """Get if diagnostic telemetry is enabled"""
+        return self._data.get("EnableDiagnosticTelemetry", False)
+
+
+class _WiserZigbee:
+    """Data structure for zigbee information for a Wiser Hub"""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def error_72_reset(self) -> int:
+        """Get error72reset info"""
+        return self._data.get("Error72Reset", 0)
+    
+    @property
+    def jpan_count(self) -> int:
+        """Get jpan count info"""
+        return self._data.get("JPANCount", 0)
+
+    @property
+    def network_channel(self) -> int:
+        """Get network channel info"""
+        return self._data.get("NetworkChannel", 0)
+
+    @property
+    def no_signal_reset(self) -> int:
+        """Get no signal reset info"""
+        return self._data.get("NoSignalReset", 0)
+
+    @property
+    def module_version(self) -> str:
+        """Get zigbee module version info"""
+        return self._data.get("ZigbeeModuleVersion", TEXT_UNKNOWN)
+
+    @property
+    def eui(self) -> str:
+        """Get zigbee eui info"""
+        return self._data.get("ZigbeeEUI", TEXT_UNKNOWN)
+
+
+class _WiserGPS:
+    """Data structure for gps positional information for a Wiser Hub"""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def latitude(self) -> float:
+        """Get the latitude of the hub"""
+        return self._data.get("Latitude")
+
+    @property
+    def longitude(self) -> float:
+        """Get the longitude of the hub"""
+        return self._data.get("Longitude")
+
+
+class _WiserFirmwareUpgradeItem:
+    """Data structure for upgrade info for a Wiser Hub"""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def id(self) -> int:
+        "Get the id of the firmware filename"
+        return self._data.get("id",0)
+
+    @property
+    def filename(self) -> str:
+        "Get the filename of the firmware file"
+        return self._data.get("FirmwareFilename", TEXT_UNKNOWN)
+
+
+class _WiserFirmareUpgradeInfo:
+    """Data structure to hold upgrade file info for a Wiser Hub"""
+    def __init__(self, data: dict):
+        self._data = data
+        self._items = []
+        for item in self._data:
+            self._items.append(_WiserFirmwareUpgradeItem(item))
+
+    @property
+    def all(self) -> dict:
+        return self._items
+
+    def by_id(self, id) -> _WiserFirmwareUpgradeItem:
+        return [item for item in self._items if item.id == id][0]
+
+
+class _WiserHubCapabilitiesInfo:
+    """Data structure for capabilities info for Wiser Hub"""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def all(self) -> str:
+        "Get the list of capabilities"
+        return self._data
+    
+    def get_capability(self, name) -> bool:
+        """
+        Gets a capability value from the hub capabilities
+        param name: name of capability
+        return: bool
+        """
+        try:
+            return [capability.value for capability in self.capabilities if capability.key == name][0]
+        except IndexError:
+            return None
+
+    
