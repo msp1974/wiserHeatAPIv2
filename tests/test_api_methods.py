@@ -1,6 +1,7 @@
 from params import HOST, KEY
 
 import sys
+import time
 
 from wiserHeatAPIv2.const import TEXT_UNKNOWN
 sys.path.append('/home/mark/development/wiserHeatAPIv2/')
@@ -32,24 +33,56 @@ def fn(h: object, fn_name: str, args: dict = {}):
         fn = getattr(h, fn_name)
         result = fn(**args)
         if result:
+            if type(result) != bool:
+                print(f"Result: {result.name}")
             print(f"{bcolors.OKGREEN}Passed{bcolors.NORMAL}")
         else:
             print(f"{bcolors.WARNING} ERROR - {result}{bcolors.NORMAL}")
     except Exception as ex:
         print(f"{bcolors.FAIL}ERROR - {ex}{bcolors.NORMAL}")
+        raise ex
 
  
 def test_methods(h: wiserhub.WiserAPI):
-       
+
     # Room - just pick first one
     if h.rooms.count > 0:
-        fn(h.rooms.all[0], "boost", {"inc_temp":2, "duration":5})
-        fn(h.rooms.all[0], "cancel_boost", {})
-        fn(h.rooms.all[0], "set_target_temperature", {"temp":18})
-        fn(h.rooms.all[0], "set_target_temperature_for_duration", {"temp":17, "duration":5})
-        fn(h.rooms.all[0], "set_manual_temperature", {"temp":16})
-        fn(h.rooms.all[0], "schedule_advance", {})
-        fn(h.rooms.all[0], "cancel_overrides", {})
+        # Room collection methods
+        room = h.rooms.all[0]
+
+        fn(h.rooms, "get_by_id", {"id": room.id})
+        fn(h.rooms, "get_by_name", {"name": room.name})
+        fn(h.rooms, "get_by_schedule_id", {"schedule_id": room.schedule.id})
+        fn(h.rooms, "get_by_device_id", {"device_id": room.devices[0].id})
+
+        fn(room, "boost", {"inc_temp":2, "duration":5})
+        fn(room, "cancel_boost", {})
+        fn(room, "set_target_temperature", {"temp":18})
+        fn(room, "set_target_temperature_for_duration", {"temp":17, "duration":5})
+        fn(room, "set_manual_temperature", {"temp":16})
+        fn(room, "schedule_advance", {})
+        fn(room, "cancel_overrides", {})
+
+        
+        # Schedules
+        fn(room.schedule, "set_schedule", {"schedule_data": room.schedule.schedule_data})
+
+        fn(room.schedule, "save_schedule_to_file", {"schedule_file": "test_json_schedule.json"})
+        fn(room.schedule, "set_schedule_from_file", {"schedule_file": "test_json_schedule.json"})
+
+        fn(room.schedule, "save_schedule_to_yaml_file", {"schedule_yaml_file": "test_json_schedule.yaml"})
+        fn(room.schedule, "set_schedule_from_yaml_file", {"schedule_yaml_file": "test_json_schedule.yaml"})
+
+        # Test copy schedule between rooms - need at least 2 rooms
+        if h.rooms.count >= 2:
+            # Save current room schedule
+            rm = h.rooms.all[1]
+            rm_sched = rm.schedule.schedule_data
+            fn(room.schedule, "copy_schedule", {"to_id": rm.schedule.id})
+            #Set it back to original
+            #time.sleep(10)
+            fn(rm.schedule, "set_schedule", {"schedule_data": rm_sched})
+
     else:
         print(f"{bcolors.OKBLUE}No rooms in system to test{bcolors.NORMAL}")
 
@@ -74,7 +107,10 @@ def test_system():
     print("**********************************************************")
     print ("Testing WiserHub API Methods")
     print("**********************************************************")
-    h = wiserhub.WiserAPI(HOST, KEY)
-    test_methods(h)
+    try:
+        h = wiserhub.WiserAPI(HOST, KEY)
+        test_methods(h)
+    except Exception as ex:
+        print (f"Error: {ex}")
 
 test_system()
