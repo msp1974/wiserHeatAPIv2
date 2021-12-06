@@ -332,7 +332,7 @@ class _WiserScheduleCollection(object):
     def count(self) -> int:
         return len(self.all)
 
-    def get_by_id(self, id: int) -> _WiserSchedule | None:
+    def get_by_id(self, id: int) -> _WiserSchedule:
         """
         Gets a schedule object from the schedules id
         param id: id of schedule
@@ -343,7 +343,7 @@ class _WiserScheduleCollection(object):
         except IndexError:
             return None
 
-    def get_by_name(self, name: str) -> _WiserSchedule | None:
+    def get_by_name(self, name: str) -> _WiserSchedule:
         """
         Gets a schedule object from the schedules name
         (room name, smart plug name, hotwater)

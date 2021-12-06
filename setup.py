@@ -21,5 +21,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=["ruamel.yaml==0.16.13", "zeroconf>=0.37.0", "requests>=2.26.0"],
-    python_requires='>=3.10'
+    python_requires='>=3.9'
 )

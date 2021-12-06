@@ -74,7 +74,7 @@ class _WiserRoom(object):
         return self._data.get("AwayModeSuppressed", TEXT_UNKNOWN)
 
     @property
-    def boost_end_time(self) -> datetime | None:
+    def boost_end_time(self) -> datetime:
         """Get boost end timestamp"""
         if self._data.get("OverrideTimeoutUnixTime", 0) == 0:
             return None
@@ -99,7 +99,7 @@ class _WiserRoom(object):
         return tf._from_wiser_temp(self._data.get("CalculatedTemperature", TEMP_MINIMUM))
 
     @property
-    def current_humidity(self) -> int | None:
+    def current_humidity(self) -> int:
         """Get current humidity of the room if room has a roomstat"""
         for device in self.devices:
             if hasattr(device, "current_humidity"):
