@@ -66,12 +66,12 @@ class WiserAPI(object):
         self._wiser_api_connection.units = units
         
         # Data stores for exposed properties
-        self._devices = []
+        self._devices = None
         self._hotwater = None
-        self._heating_channels = []
-        self._moments = []
-        self._rooms = []
-        self._schedules = []
+        self._heating_channels = None
+        self._moments = None
+        self._rooms = None
+        self._schedules = None
         self._system = None
 
         # Log initialisation info
