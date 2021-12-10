@@ -3,6 +3,7 @@
 *.json
 build
 dist
+dist-issue
 wiserHeatAPIv2.egg-info
 .idea
 /t.py
