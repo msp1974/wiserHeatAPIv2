@@ -55,7 +55,13 @@ class _WiserMomentCollection(object):
             
     @property
     def all(self) -> list:
+        """Return list of moments"""
         return self._moments
+
+    @property
+    def count(self) -> int:
+        """Count of moments"""
+        return len(self._moments)
 
     def get_by_id(self, id: int) -> _WiserMoment:
         try:
