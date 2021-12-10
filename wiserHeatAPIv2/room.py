@@ -383,10 +383,12 @@ class _WiserRoomCollection(object):
 
     @property
     def all(self) -> list:
+        """Returns list of room objects"""
         return self._rooms
 
     @property
     def count(self) -> int:
+        """Number of rooms"""
         return len(self._rooms)
 
     def add(self, name):
