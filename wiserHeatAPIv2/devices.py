@@ -109,14 +109,14 @@ class _WiserDeviceCollection(object):
         except IndexError:
             return None
 
-    def get_by_room_id(self, room_id:int):
+    def get_by_room_id(self, room_id:int) -> list:
         """
         Gets a list of devices belonging to the room id
         param room_id: the id of the room
         return: _WiserSmartValve, _Wiser_RoomStat or _WiserSmartPlug object
         """
         try:
-            return [device for device in self.all if device.room_id == room_id][0]
+            return [device for device in self.all if device.room_id == room_id]
         except IndexError:
             return None
 
@@ -145,14 +145,14 @@ class _WiserDeviceCollection(object):
         except IndexError:
             return None
 
-    def get_by_parent_node_id(self, node_id:int):
+    def get_by_parent_node_id(self, node_id:int) -> list:
         """
-        Gets a device object from the devices zigbee parent node id
+        Gets a list of device from the devices zigbee parent node id
         param node_id: zigbee parent node id of device
-        return: _WiserSmartValve, _Wiser_RoomStat or _WiserSmartPlug object
+        return: List of _WiserSmartValve, _Wiser_RoomStat or _WiserSmartPlug object
         """
         try:
-            return [device for device in self.all if device.parent_node_id == node_id][0]
+            return [device for device in self.all if device.parent_node_id == node_id]
         except IndexError:
             return None  
 
