@@ -146,16 +146,6 @@ class _WiserHotwater(object):
         """Get the hot water schedule"""
         return self._schedule
 
-    def schedule_advance(self):
-        """
-        Advance hot water schedule to the next scheduled time and state setting
-        return: boolean
-        """
-        if self.schedule.next.setting == TEXT_ON:
-            return self.override_state(TEXT_ON)
-        else:
-            return self.override_state(TEXT_OFF)
-
     def boost(self, duration: int) -> bool:
         """
         Turn the hot water on for x minutes, overriding the current schedule or manual setting
@@ -164,23 +154,41 @@ class _WiserHotwater(object):
         """
         return self.override_state_for_duration(TEXT_ON, duration)
 
+    def cancel_boost(self) -> bool:
+        """
+        Cancel the target temperature boost of the room
+        return: boolean
+        """
+        if self.is_boosted:
+            return self.cancel_overrides()
+        else:
+            return True
+
+    def cancel_overrides(self):
+        """
+        Cancel all overrides of the hot water
+        return: boolean
+        """
+        return self._send_command({"RequestOverride": {"Type": "None"}})
+
     def override_state(self, state: str) -> bool:
         """
         Override hotwater state.  In auto this is until the next scheduled event.  In manual mode this is until changed.
         return: boolean
         """
-        if state.casefold() == TEXT_ON.casefold():
-            return self._send_command(
-                {"RequestOverride": {"Type": "Manual", "SetPoint": TEMP_HW_ON * 10}}
-            )
-        elif state.casefold() == TEXT_OFF.casefold():
-            return self._send_command(
-                {"RequestOverride": {"Type": "Manual", "SetPoint": TEMP_HW_OFF * 10}}
-            )
-        else:
-            raise ValueError(
-                f"Invalid state value {state}.  Should be {TEXT_ON} or {TEXT_OFF}"
-            )
+        if self.cancel_boost():
+            if state.casefold() == TEXT_ON.casefold():
+                return self._send_command(
+                    {"RequestOverride": {"Type": "Manual", "SetPoint": tf._to_wiser_temp(TEMP_HW_ON, "hotwater")}}
+                )
+            elif state.casefold() == TEXT_OFF.casefold():
+                return self._send_command(
+                    {"RequestOverride": {"Type": "Manual", "SetPoint": tf._to_wiser_temp(TEMP_HW_OFF, "hotwater")}}
+                )
+            else:
+                raise ValueError(
+                    f"Invalid state value {state}.  Should be {TEXT_ON} or {TEXT_OFF}"
+                )
 
     def override_state_for_duration(self, state: str, duration: int) -> bool:
         """
@@ -213,9 +221,10 @@ class _WiserHotwater(object):
                 f"Invalid state value {state}.  Should be {TEXT_ON} or {TEXT_OFF}"
             )
 
-    def cancel_overrides(self):
+    def schedule_advance(self):
         """
-        Cancel all overrides of the hot water
+        Advance hot water schedule to the next scheduled state setting
         return: boolean
         """
-        return self._send_command({"RequestOverride": {"Type": "None"}})
+        if self.cancel_boost():
+            return self.override_state(self.schedule.next.setting)
