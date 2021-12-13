@@ -9,3 +9,4 @@ wiserHeatAPIv2.egg-info
 /t.py
 params.py
 venv
+tests/test_yaml.py
