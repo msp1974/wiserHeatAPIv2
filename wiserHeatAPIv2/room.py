@@ -321,9 +321,8 @@ class _WiserRoom(object):
         Advance room schedule to the next scheduled time and temperature setting
         return: boolean
         """
-        return self.set_target_temperature(
-            tf._from_wiser_temp(self.schedule.next.setting)
-        )
+        if self.cancel_boost():
+            return self.set_target_temperature(self.schedule.next.setting)
 
     def cancel_overrides(self) -> bool:
         """
