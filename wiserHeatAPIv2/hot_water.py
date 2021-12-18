@@ -17,9 +17,8 @@ from .const import (
 )
 
 class WiserHotWaterModeEnum(enum.Enum):
-    on = TEXT_ON
-    off = TEXT_OFF
     auto = TEXT_AUTO
+    manual = TEXT_MANUAL
 
 import inspect
 
@@ -31,7 +30,7 @@ class _WiserHotwater(object):
         self._wiser_rest_controller = wiser_rest_controller
         self._data = hw_data
         self._schedule = schedule
-        self._mode = self._enumerate_mode(self._data.get("Mode", TEXT_AUTO), self._data.get("ManualWaterHeatingState", TEXT_OFF))
+        self._mode = self._data.get("Mode", TEXT_AUTO)
 
     def _send_command(self, cmd: dict):
         """
@@ -53,11 +52,6 @@ class _WiserHotwater(object):
             if mode.casefold() == available_mode.casefold():
                 return True
         return False
-
-    def _enumerate_mode(self, mode: str, state: str):
-        if mode == TEXT_MANUAL:
-            return WiserHotWaterModeEnum[state.lower()].value
-        return WiserHotWaterModeEnum[mode.lower()].value
 
     @property
     def available_modes(self) -> str:
@@ -130,10 +124,6 @@ class _WiserHotwater(object):
     @mode.setter
     def mode(self, mode: str):
         if self._validate_mode(mode):
-            if WiserHotWaterModeEnum[mode.lower()].value in [TEXT_ON, TEXT_OFF]:
-                if self._send_command({"Mode": TEXT_MANUAL}):
-                    self.override_state(mode)
-            else:
                 self._send_command({"Mode": mode})
         else:
             raise ValueError(
@@ -226,5 +216,7 @@ class _WiserHotwater(object):
         Advance hot water schedule to the next scheduled state setting
         return: boolean
         """
-        if self.cancel_boost():
-            return self.override_state(self.schedule.next.setting)
+        if self.schedule:
+            if self.cancel_boost():
+                return self.override_state(self.schedule.next.setting)
+        return False

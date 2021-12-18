@@ -17,8 +17,8 @@ from .const import (
 )
 
 class WiserSmartPlugModeEnum(enum.Enum):
-    manual = TEXT_MANUAL
     auto = TEXT_AUTO
+    manual = TEXT_MANUAL
 
 class WiserAwayActionEnum(enum.Enum):
     off = TEXT_OFF
@@ -192,6 +192,7 @@ class _WiserSmartPlug(_WiserDevice):
         if result:
             self._output_state = TEXT_OFF
         return result
+
 
 class _WiserSmartPlugCollection(object):
     """Class holding all wiser smart plugs"""
