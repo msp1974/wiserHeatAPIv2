@@ -205,6 +205,10 @@ class _WiserSmartPlugCollection(object):
         return list(self._smartplugs)
 
     @property
+    def available_modes(self):
+        return [mode.value for mode in WiserSmartPlugModeEnum]
+
+    @property
     def count(self) -> int:
         return len(self.all)
 
