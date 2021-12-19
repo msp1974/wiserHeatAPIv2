@@ -55,3 +55,10 @@ Added Wiser moments integration (minimal at present)
 
 0.0.4
 Changed info logging to debug
+
+0.0.7
+Fixed multiple bugs
+
+0.0.8
+Fixed multiple bugs
+Added new features to work with HA integration
