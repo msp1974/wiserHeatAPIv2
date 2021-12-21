@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.9
+# Drayton Wiser Hub API v2 v0.0.10
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -62,3 +62,11 @@ Fixed multiple bugs
 0.0.8
 Fixed multiple bugs
 Added new features to work with HA integration
+
+0.0.9
+Fixed moments bug not referencing rest controller
+Renamed smartplug away mode action
+Renamed smartplug power properties
+Cleaned up unnecessary code
+
+0.0.10
