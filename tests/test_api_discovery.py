@@ -1,7 +1,5 @@
 from wiserHeatAPIv2.discovery import WiserDiscovery
 
-
-
 def discovery():
     try:
         w = WiserDiscovery()
