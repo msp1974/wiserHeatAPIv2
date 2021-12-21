@@ -12,6 +12,7 @@ import inspect
 class _WiserMoment(object):
 
     def __init__(self, wiser_rest_controller: _WiserRestController, moment_data: dict):
+        self._wiser_rest_controller = wiser_rest_controller
         self._moment_data = moment_data
 
     def _send_command(self, cmd: dict) -> bool:
