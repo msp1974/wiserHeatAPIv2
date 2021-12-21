@@ -22,7 +22,7 @@ class WiserSmartPlugModeEnum(enum.Enum):
 
 class WiserAwayActionEnum(enum.Enum):
     off = TEXT_OFF
-    no_change = TEXT_NO_CHANGE
+    nochange = TEXT_NO_CHANGE
 
 
 import inspect
@@ -67,7 +67,7 @@ class _WiserSmartPlug(_WiserDevice):
         return False
 
     def _validate_away_action(self, action: str) -> bool:
-        for action in WiserAwayActionEnum:
+        for action in self.available_away_mode_actions:
             if action.casefold() == action.casefold():
                 return True
         return False
@@ -81,12 +81,12 @@ class _WiserSmartPlug(_WiserDevice):
         return [action.value for action in WiserAwayActionEnum]
 
     @property
-    def away_action(self) -> str:
+    def away_mode_action(self) -> str:
         """Get or set the away action of the smart plug (off or no change)"""
         return WiserAwayActionEnum[self._away_action.lower()].value
 
-    @away_action.setter
-    def away_action(self, action: str):
+    @away_mode_action.setter
+    def away_mode_action(self, action: str):
         if self._validate_away_action(action):
             if self._send_command({"AwayAction": WiserAwayActionEnum[action.lower()].value}):
                 self._away_action = WiserAwayActionEnum[action.lower()].value
