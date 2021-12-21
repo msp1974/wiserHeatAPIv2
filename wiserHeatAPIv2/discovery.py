@@ -4,6 +4,26 @@ from time import sleep
 from typing import cast
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
 
+class _WiserDiscoveredHub(object):
+
+    def __init__(self, ip: str, hostname: str, name: str,):
+        self._ip = ip
+        self._name = name
+        self._hostname = hostname
+
+    @property
+    def ip(self) -> str:
+        return self._ip
+
+    @property
+    def hostname(self) -> str:
+        return self._hostname
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+
 class WiserDiscovery(object):
     """
     Class to handle mDns discovery of a wiser hub on local network
@@ -32,11 +52,11 @@ class WiserDiscovery(object):
                         "%s:%d" % (addr, cast(int, info.port))
                         for addr in info.parsed_addresses()
                     ]
-                    hub = {
-                        "ip": addresses[0].replace(":80", ""),
-                        "name": info.server.replace(".local.", ""),
-                        "hostname": info.server.replace(".local.", ".local").lower(),
-                    }
+                    hub = _WiserDiscoveredHub(
+                        addresses[0].replace(":80", ""),
+                        info.server.replace(".local.", ".local").lower(),
+                        info.server.replace(".local.", ""),
+                    )
                     _LOGGER.debug(
                         "Discovered Hub {} with IP Address {}".format(
                             info.server.replace(".local.", ""),
