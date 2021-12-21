@@ -106,7 +106,7 @@ class _WiserSmartPlug(_WiserDevice):
         return self._device_type_data.get("ControlSource", TEXT_UNKNOWN)
 
     @property
-    def current_delivered(self) -> int:
+    def delivered_power(self) -> int:
         """Get the amount of current throught the plug over time"""
         return self._device_type_data.get("CurrentSummationDelivered",0)
 
@@ -121,7 +121,7 @@ class _WiserSmartPlug(_WiserDevice):
             self._device_lock_enabled = enable
 
     @property
-    def instantaneous_demand(self) -> int:
+    def instantaneous_power(self) -> int:
         """Get the amount of current throught the plug now"""
         return self._device_type_data.get("InstantaneousDemand",0)
 
