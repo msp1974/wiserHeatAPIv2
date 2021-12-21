@@ -24,22 +24,23 @@ Look for the Wi-Fi network (SSID) called **‘WiserHeatXXXXXX’** where XXXXXX 
 
 Using your router, or something else, identify the IP address of your HeatHub, it usually identifies itself as the same ID as the ``WiserHeatXXXXXX`` 
 
-Alternatively see the wiserhub2apitest.py file for how to use the api to discover you hub
+Alternatively see the test_api_discovery.py file for how to use the api to discover your hub
 
-## 4. Add values in you wiserkeys.params
-Create a file called wiserkeys.params and place two lines, one with the wiser IP and the other with the key it self. 
+## 4. Add values in you params.py to run tests
+Create a file called params.py and place two lines, one with the wiser IP or hostname and the other with the secret key. 
 e.g.
 ```
-wiserkey=ABCDCDCDCCCDCDC
-wiserhubip=192.168.0.22
+HOST=192.168.0.22
+KEY=ABCDCDCDCCCDCDC
+
 ```
 
 ## 5. Run the sample
-To help understand the api simply look at the sample code ```tests/test_api_properties.py``` and the fully commented code. 
+To help understand the api simply look at the test sample code ```tests/test_api_properties.py```, ```tests/test_api_methods.py``` or ```tests/test_api_discovery.py``` and the fully commented code. 
 
 ## 6. Documentation
 
-Documentation available in [docs](docs) directory and within comments in the code
+Documentation available in [docs](docs/info.md) directory and within comments in the code
 
 *Changelog*
 
@@ -70,3 +71,4 @@ Renamed smartplug power properties
 Cleaned up unnecessary code
 
 0.0.10
+Discovery now returns class object
