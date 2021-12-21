@@ -6,7 +6,7 @@ from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
 
 class _WiserDiscoveredHub(object):
 
-    def __init__(self, ip: str, hostname: str, name: str,):
+    def __init__(self, ip: str, hostname: str, name: str):
         self._ip = ip
         self._name = name
         self._hostname = hostname
@@ -22,7 +22,7 @@ class _WiserDiscoveredHub(object):
     @property
     def name(self) -> str:
         return self._name
-
+        
 
 class WiserDiscovery(object):
     """
@@ -53,9 +53,9 @@ class WiserDiscovery(object):
                         for addr in info.parsed_addresses()
                     ]
                     hub = _WiserDiscoveredHub(
-                        addresses[0].replace(":80", ""),
-                        info.server.replace(".local.", ".local").lower(),
-                        info.server.replace(".local.", ""),
+                        ip = addresses[0].replace(":80", ""),
+                        hostname = info.server.replace(".local.", ".local").lower(),
+                        name = info.server.replace(".local.", ""),
                     )
                     _LOGGER.debug(
                         "Discovered Hub {} with IP Address {}".format(
