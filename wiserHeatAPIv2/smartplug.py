@@ -60,13 +60,6 @@ class _WiserSmartPlug(_WiserDevice):
             )
         return result
 
-    def _effective_mode(self, mode: str, state: str) -> str:
-        if mode.casefold() == TEXT_MANUAL.casefold():
-            if state.casefold() == TEXT_ON.casefold():
-                return TEXT_ON
-            return TEXT_OFF
-        return TEXT_AUTO
-
     def _validate_mode(self, mode: str) -> bool:
         for available_mode in self.available_modes:
             if mode.casefold() == available_mode.casefold():
