@@ -124,9 +124,9 @@ class _WiserSystem(object):
 
     @away_mode_target_temperature.setter
     def away_mode_target_temperature(self, temp: float):
-        temp = temp._to_wiser_temp(temp)
+        temp = tf._to_wiser_temp(temp)
         if self._send_command({"AwayModeSetPointLimit": temp}):
-            self._away_mode_target_temperature = temp._to_wiser_temp(temp)
+            self._away_mode_target_temperature = tf._to_wiser_temp(temp)
 
     @property
     def boiler_fuel_type(self) -> str:
