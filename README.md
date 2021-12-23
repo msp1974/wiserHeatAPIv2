@@ -72,3 +72,4 @@ Cleaned up unnecessary code
 
 0.0.10
 Discovery now returns class object
+Fix bug in away_mode_target_temperature setter
