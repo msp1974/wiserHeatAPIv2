@@ -40,36 +40,37 @@ To help understand the api simply look at the test sample code ```tests/test_api
 
 ## 6. Documentation
 
-Documentation available in [docs](docs/info.md) directory and within comments in the code
+Documentation available in [info.md](docs/info.md) directory and within comments in the code
 
 *Changelog*
 
-0.0.1
-Initial v2 release
+### 0.0.1
+- Initial v2 release
 
-0.0.2
-Updated setup.cfg
+### 0.0.2
+- Updated setup.cfg
 
-0.0.3
-Restructured code
-Added Wiser moments integration (minimal at present)
+### 0.0.3
+- Restructured code
+- Added Wiser moments integration (minimal at present)
 
-0.0.4
-Changed info logging to debug
+### 0.0.4
+- Changed info logging to debug
 
-0.0.7
-Fixed multiple bugs
+### 0.0.7
+- Fixed multiple bugs
 
-0.0.8
-Fixed multiple bugs
-Added new features to work with HA integration
+### 0.0.8
+- Fixed multiple bugs
+- Added new features to work with HA integration
 
-0.0.9
-Fixed moments bug not referencing rest controller
-Renamed smartplug away mode action
-Renamed smartplug power properties
-Cleaned up unnecessary code
+### 0.0.9
+- Fixed moments bug not referencing rest controller
+- Renamed smartplug away mode action
+- Renamed smartplug power properties
+- Cleaned up unnecessary code
 
-0.0.10
-Discovery now returns class object
-Fix bug in away_mode_target_temperature setter
+### 0.0.10
+- Added documentation on usage and examples [see info.md](docs/info.md)
+- Discovery now returns class object
+- Fix bug in away_mode_target_temperature setter
