@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.10
+# Drayton Wiser Hub API v2 v0.0.11
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -74,3 +74,6 @@ Documentation available in [info.md](docs/info.md) in the docs directory and wit
 - Added documentation on usage and examples [see info.md](docs/info.md)
 - Discovery now returns class object
 - Fix bug in away_mode_target_temperature setter
+
+### 0.0.11
+- Added numer_of_smartvalves and smartvalve_ids properties
