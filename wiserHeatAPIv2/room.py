@@ -194,6 +194,11 @@ class _WiserRoom(object):
             self._name = name.title()
 
     @property
+    def number_of_smartvalves(self) -> int:
+        """Get number of smartvalves associated with room"""
+        return len(self._data.get("SmartValveIds", []))
+
+    @property
     def override_target_temperature(self) -> float:
         """Get the override target temperature of the room"""
         return self._data.get("OverrideSetpoint", 0)
@@ -222,6 +227,11 @@ class _WiserRoom(object):
     def scheduled_target_temperature(self) -> float:
         """Get the scheduled target temperature for the room"""
         return tf._from_wiser_temp(self._data.get("ScheduledSetPoint", TEMP_MINIMUM))
+
+    @property
+    def smartvalve_ids(self) -> list:
+        """Get list of smartvalve ids associated with room"""
+        return sorted(self._data.get("SmartValveIds", []))
 
     @property
     def target_temperature_origin(self) -> str:
