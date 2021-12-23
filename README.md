@@ -40,7 +40,7 @@ To help understand the api simply look at the test sample code ```tests/test_api
 
 ## 6. Documentation
 
-Documentation available in [info.md](docs/info.md) directory and within comments in the code
+Documentation available in [info.md](docs/info.md) in the docs directory and within comments in the code
 
 *Changelog*
 
