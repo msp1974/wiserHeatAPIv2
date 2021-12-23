@@ -9,12 +9,6 @@ from .const import (
 )
 
 from .exceptions import (
-    WiserHubConnectionError,
-    WiserHubAuthenticationError,
-    WiserHubRESTError
-)
-
-from .exceptions import (
     WiserHubAuthenticationError,
     WiserHubConnectionError,
     WiserHubRESTError
