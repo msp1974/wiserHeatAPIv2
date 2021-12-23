@@ -76,4 +76,4 @@ Documentation available in [info.md](docs/info.md) in the docs directory and wit
 - Fix bug in away_mode_target_temperature setter
 
 ### 0.0.11
-- Added numer_of_smartvalves and smartvalve_ids properties
+- Added number_of_smartvalves and smartvalve_ids properties
