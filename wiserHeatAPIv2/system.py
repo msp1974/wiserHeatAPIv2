@@ -328,9 +328,7 @@ class _WiserSystem(object):
                 "RequestOverride": {
                     "Type": "Boost",
                     "DurationMinutes": duration,
-                    "IncreaseSetPointBy": tf._to_wiser_temp(inc_temp)
-                    if tf._to_wiser_temp(inc_temp) <= MAX_BOOST_INCREASE
-                    else MAX_BOOST_INCREASE,
+                    "IncreaseSetPointBy": tf._to_wiser_temp(inc_temp, "delta")
                 }
             }
         )
