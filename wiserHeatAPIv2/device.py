@@ -1,9 +1,8 @@
-from . import _LOGGER
 from .const import TEXT_UNKNOWN
 from .helpers import _WiserSignalStrength
 
 class _WiserDevice(object):
-    """Class representing a wiser device"""
+    """Class representing a wiser heating device"""
 
     def __init__(self, data: dict):
         self._data = data
@@ -53,3 +52,10 @@ class _WiserDevice(object):
     def signal(self) -> _WiserSignalStrength:
         """Get zwave network information"""
         return self._signal
+
+class _WiserElectricalDevice(_WiserDevice):
+    """Class representing a wiser electrical device"""
+    @property
+    def id(self) -> int:
+        """Get id of device"""
+        return self._data.get("DeviceId")
