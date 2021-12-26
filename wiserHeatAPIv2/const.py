@@ -23,6 +23,7 @@ REST_TIMEOUT = 15
 
 # Text Values
 TEXT_AUTO = "Auto"
+TEXT_CLOSE = "Close"
 TEXT_DEGREESC = "DegreesC"
 TEXT_HEATING = "Heating"
 TEXT_MANUAL = "Manual"
@@ -30,6 +31,7 @@ TEXT_NO_CHANGE = "NoChange"
 TEXT_OFF = "Off"
 TEXT_ON = "On"
 TEXT_ONOFF = "OnOff"
+TEXT_OPEN = "Open"
 TEXT_STATE = "State"
 TEXT_TEMP = "Temp"
 TEXT_TIME = "Time"
@@ -54,6 +56,9 @@ WISERROOM = "Room/{}"
 WISERSMARTVALVE = "SmartValve/{}"
 WISERROOMSTAT = "RoomStat/{}"
 WISERSMARTPLUG = "SmartPlug/{}"
+WISERHEATINGACTUATOR = "HeatingActuator/{}"
+WISERSHUTTER = "Shutter/{}"
+WISERLIGHT = "Light/{}"
 
 # Enums
 class WiserUnitsEnum(enum.Enum):
