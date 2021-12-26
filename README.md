@@ -1,8 +1,9 @@
-# Drayton Wiser Hub API v2 v0.0.12
+# Drayton Wiser Hub API v2 v0.0.13
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
 The API functionality provides the following functionality to control the wiser heating system for 1,2 and 3 channel heat hubs
+The API also supports Smart Plugs and initial basic functionality for Shutter and Lights
 
 ## Installation
 
@@ -80,3 +81,8 @@ Documentation available in [info.md](docs/info.md) in the docs directory and wit
 
 ### 0.0.12
 - Fix bug in boost_all_rooms that used incorrect temp delta
+
+### 0.0.13
+- Add support for Heating Actuator devices
+- Add basic support for Shutters
+- Add basic support for Lights
