@@ -1,3 +1,4 @@
+from wiserHeatAPIv2 import heating_actuator
 from . import _LOGGER
 from .const import TEXT_UNKNOWN
 
@@ -6,6 +7,9 @@ from .roomstat import _WiserRoomStat, _WiserRoomStatCollection
 from .schedule import _WiserScheduleCollection
 from .smartplug import _WiserSmartPlug, _WiserSmartPlugCollection
 from .smartvalve import _WiserSmartValve, _WiserSmartValveCollection
+from .heating_actuator import _WiserHeatingActuator, _WiserHeatingActuatorCollection
+from .shutter import _WiserShutter, _WiserShutterCollection
+from .light import _WiserLight, _WiserLightCollection
 
 class _WiserDeviceCollection(object):
     """Class holding all wiser devices"""
@@ -19,6 +23,9 @@ class _WiserDeviceCollection(object):
         self._smartvalves_collection = _WiserSmartValveCollection()
         self._roomstats_collection = _WiserRoomStatCollection()
         self._smartplugs_collection = _WiserSmartPlugCollection()
+        self._heating_actuators_colleciton = _WiserHeatingActuatorCollection()
+        self._shutters_collection = _WiserShutterCollection()
+        self._lights_collection = _WiserLightCollection()
 
         self._build()
 
@@ -77,26 +84,103 @@ class _WiserDeviceCollection(object):
                         )
                     )
 
+                # Add heating actuator object to collection
+                elif device.get("ProductType") == "HeatingActuator":
+                    heating_actuator_info = [
+                        heating_actuator
+                        for heating_actuator in self._domain_data.get("HeatingActuator")
+                        if heating_actuator.get("id") == device.get("id")
+                    ]
+                    self._heating_actuator_collection._heating_actuators.append(
+                        _WiserHeatingActuator(
+                            self._wiser_rest_controller,
+                            device,
+                            heating_actuator_info[0]
+                        )
+                    )
+
+                # Add shutter object to collection
+                elif device.get("ProductType") == "Shutter":
+                    shutter_info = [
+                        shutter
+                        for shutter in self._domain_data.get("Shutter")
+                        if shutter.get("device_id") == device.get("id")
+                    ]
+                    shutter_schedule = [
+                        schedule
+                        for schedule in self._schedules
+                        if schedule.id == shutter_info[0].get("ScheduleId")
+                    ]
+                    self._shutter_collection._shutters.append(
+                        _WiserShutter(
+                            self._wiser_rest_controller,
+                            device,
+                            shutter_info[0],
+                            shutter_schedule[0] if len(shutter_schedule) > 0 else []
+                        )
+                    )
+
+                # Add light object to collection
+                elif device.get("ProductType") == "eLight":
+                    light_info = [
+                        light
+                        for light in self._domain_data.get("Light")
+                        if light.get("device_id") == device.get("id")
+                    ]
+                    light_schedule = [
+                        schedule
+                        for schedule in self._schedules
+                        if schedule.id == light_info[0].get("ScheduleId")
+                    ]
+                    self._light_collection._lights.append(
+                        _WiserLight(
+                            self._wiser_rest_controller,
+                            device,
+                            light_info[0],
+                            light_schedule[0] if len(light_schedule) > 0 else []
+                        )
+                    )
+                    
+
 
     @property
     def all(self):
-        return list(self._smartvalves_collection.all) + list(self._roomstats_collection.all) + list(self._smartplugs_collection.all)
+        return (
+            list(self._smartvalves_collection.all) 
+            + list(self._roomstats_collection.all) 
+            + list(self._smartplugs_collection.all)
+            + list(self._heating_actuators_colleciton.all)
+            + list(self._shutters_collection.all)
+            + list(self._lights_collection.all)
+        )
 
     @property
     def count(self) -> int:
         return len(self.all)
 
     @property
-    def smartvalves(self):
-        return self._smartvalves_collection
+    def heating_actuators(self):
+        return self._heating_actuators_colleciton
+
+    @property
+    def lights(self):
+        return self._lights_collection
 
     @property
     def roomstats(self):
         return self._roomstats_collection
 
     @property
+    def shutters(self):
+        return self._shutters_collection
+
+    @property
     def smartplugs(self):
         return self._smartplugs_collection
+
+    @property
+    def smartvalves(self):
+        return self._smartvalves_collection
 
     def get_by_id(self, id: int):
         """
