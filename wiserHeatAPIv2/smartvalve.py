@@ -109,7 +109,3 @@ class _WiserSmartValveCollection(object):
             ][0]
         except IndexError:
             return None
-
-    def get_by_room_name(self, room_name:str) -> _WiserSmartValve:
-        pass
-    
