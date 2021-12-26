@@ -6,11 +6,13 @@ This library implements the local REST API for the Drayton Wiser Heathub System.
 - Hub Discovery
 - Rooms
 - iTRVs
+- Heating Actuators (electric heating)
 - Roomstats
 - Smartplugs
 - Hot Water
 - System
-
+- Shutters (basic)
+- Lights (basic)
 
 ## Hub Discovery
 
@@ -60,7 +62,7 @@ device = h.devices.get_by_node_id(node_id)
 device = h.devices.get_by_serial_number(serial_no)
 
 ```
-## SmartValve(iTRV), RoomStat and SmartPlug Devices
+## SmartValve(iTRV), RoomStat, Heating Actuator and SmartPlug Devices
 The api also provides collections of each device type connected to your HeatHub.  Collections are iterable ('all' property) and have methods to return a list of devices by criteria.  See the WiserSmartValveCollection, WiserRoomStatCollection and WiserSmartPlugCollection classes in smartvalve.py, roomstat.py and smartplug.py respectively.  The collections can be accessed as follows:
 
 ```
@@ -70,8 +72,17 @@ smartvalve = h.devices.smartvalves.get_by_id(id)
 roomstats = h.devices.roomstats.all
 roomstat = h.devices.roomstats.get_by_id(id)
 
+actuators = h.devices.heating_actuators.all
+actuator = h.devices.heating_actuators.get_by_id(id)
+
 smartplugs = h.devices.smartplugs.all
 smartplug = h.devices.smartplugs.get_by_id(id)
+
+shutters = h.devices.shutters.all
+shutter = h.devices.shutters.get_by_id(id)
+
+lights = h.devices.lights.all
+light = h.devices.lights.get_by_id(id)
 ```
 
 ## Heating Channels
@@ -132,7 +143,7 @@ from wiserHeatAPIv2 import wiserhub
 h = wiserhub.WiserAPI(HOST, KEY)
 ```
 
-### Devices (see device.py, smartvalve.py, roomsta.py, smartplugs.py)
+### Devices (see device.py, smartvalve.py, roomstat.py, smartplugs.py)
 ```
 # Get roomstat humidity
 h.devices.roomstats.get_by_id(2).current_humidity
