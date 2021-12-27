@@ -55,7 +55,17 @@ class _WiserDevice(object):
 
 class _WiserElectricalDevice(_WiserDevice):
     """Class representing a wiser electrical device"""
+    def __init__(self, data: dict, device_type_data: dict):
+        self._device_type_data = device_type_data
+        super().__init__(data)
+
     @property
     def id(self) -> int:
         """Get id of device"""
-        return self._data.get("DeviceId")
+        return self._device_type_data.get("DeviceId")
+
+    # Lights and shutters currently have model identifier as Unknowm
+    @property
+    def model(self) -> str:
+        """Get model of device"""
+        return self._data.get("ProductType", TEXT_UNKNOWN)
