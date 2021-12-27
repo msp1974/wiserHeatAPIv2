@@ -22,7 +22,7 @@ class _WiserLight(_WiserElectricalDevice):
     """Class representing a Wiser Light device"""
 
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
-        super().__init__(data)
+        super().__init__(data, device_type_data)
         self._wiser_rest_controller = wiser_rest_controller
         self._device_type_data = device_type_data
         self._schedule = schedule
