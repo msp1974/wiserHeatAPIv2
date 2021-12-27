@@ -87,6 +87,11 @@ class _WiserRoomStat(_WiserDevice):
         if self._send_command({"Identify": enable}, True):
             self._indentify_active = enable
 
+    @property
+    def room_id(self) -> int:
+        """Get roomstat room id"""
+        return self._device_type_data.get("RoomId", 0)
+
 
 class _WiserRoomStatCollection(object):
     """Class holding all wiser room stats"""

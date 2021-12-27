@@ -81,6 +81,11 @@ class _WiserSmartValve(_WiserDevice):
     def percentage_demand(self) -> int:
         """Get the current percentage demand of the smart valve"""
         return self._device_type_data.get("PercentageDemand")
+
+    @property
+    def room_id(self) -> int:
+        """Get smartvalve room id"""
+        return self._device_type_data.get("RoomId", 0)
         
 
 class _WiserSmartValveCollection(object):

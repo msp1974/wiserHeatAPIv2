@@ -16,6 +16,7 @@ class _WiserHeatingActuator(_WiserDevice):
         super().__init__(data)
         self._wiser_rest_controller = wiser_rest_controller
         self._device_type_data = device_type_data
+        self._device_lock_enabled = False
         self._indentify_active = data.get("IdentifyActive", False)
 
     def _send_command(self, cmd: dict, device_level: bool = False):
@@ -52,6 +53,17 @@ class _WiserHeatingActuator(_WiserDevice):
         return self._device_type_data.get("CurrentSummationDelivered", 0)
 
     @property
+    def device_lock_enabled(self) -> bool:
+        """Get or set heating actuator device lock"""
+        return self._device_lock_enabled
+
+    @device_lock_enabled.setter
+    def device_lock_enabled(self, enable: bool):
+        if self._send_command({"DeviceLockEnabled": enable}, True):
+            self._device_lock_enabled = enable
+
+
+    @property
     def identify(self) -> bool:
         """Get or set if the smart valve identify function is enabled"""
         return self._indentify_active
@@ -70,6 +82,11 @@ class _WiserHeatingActuator(_WiserDevice):
     def output_type(self) -> str:
         """Get output type"""
         return self._device_type_data.get("OutputType", TEXT_UNKNOWN)
+
+    @property
+    def room_id(self) -> int:
+        """Get heating actuator room id"""
+        return self._device_type_data.get("RoomId", 0)
       
 
 class _WiserHeatingActuatorCollection(object):
