@@ -112,6 +112,11 @@ class _WiserRoom(object):
         return self._devices
 
     @property
+    def heating_actuator_ids(self) -> list:
+        """Get list of heating actuator ids associated with room"""
+        return sorted(self._data.get("HeatingActuatorIds", []))
+
+    @property
     def heating_rate(self) -> str:
         """Get room heating rate"""
         return self._data.get("HeatingRate", TEXT_UNKNOWN)
@@ -192,6 +197,11 @@ class _WiserRoom(object):
     def name(self, name: str):
         if self._send_command({"Name": name.title()}):
             self._name = name.title()
+
+    @property
+    def number_of_heating_actuators(self) -> int:
+        """Get number of heating actuators associated with room"""
+        return len(self._data.get("HeatingActuatorIds", []))
 
     @property
     def number_of_smartvalves(self) -> int:
@@ -366,20 +376,7 @@ class _WiserRoomCollection(object):
                 for schedule in self._schedules
                 if schedule.id == room.get("ScheduleId")
             ]
-            devices = [
-                device
-                for device in self._devices.all
-                if (
-                    device.id in room.get("SmartValveIds", ["-1"])
-                    or device.id == room.get("RoomStatId", "-1")
-                    or device.id
-                    in [
-                        smartplug.id
-                        for smartplug in self._devices._smartplugs_collection.all
-                        if smartplug.room_id == room.get("id", 0)
-                    ]
-                )
-            ]
+            devices = self._devices.get_by_room_id(room.get("id",0))
             self._rooms.append(
                 _WiserRoom(
                     self._wiser_rest_controller,
