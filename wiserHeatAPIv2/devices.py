@@ -40,6 +40,7 @@ class _WiserDeviceCollection(object):
                         for smartvalve in self._domain_data.get("SmartValve")
                         if smartvalve.get("id") == device.get("id")
                     ]
+                    smartvalve_info[0]["RoomId"] = self._get_temp_device_room_id(self._domain_data, device.get("id"))
                     self._smartvalves_collection._smartvalves.append(
                         _WiserSmartValve(
                             self._wiser_rest_controller,
@@ -55,6 +56,7 @@ class _WiserDeviceCollection(object):
                         for roomstat in self._domain_data.get("RoomStat")
                         if roomstat.get("id") == device.get("id")
                     ]
+                    roomstat_info[0]["RoomId"] = self._get_temp_device_room_id(self._domain_data, device.get("id"))
                     self._roomstats_collection._roomstats.append(
                         _WiserRoomStat(
                             self._wiser_rest_controller,
@@ -91,7 +93,8 @@ class _WiserDeviceCollection(object):
                         for heating_actuator in self._domain_data.get("HeatingActuator")
                         if heating_actuator.get("id") == device.get("id")
                     ]
-                    self._heating_actuator_collection._heating_actuators.append(
+                    heating_actuator_info[0]["RoomId"] = self._get_temp_device_room_id(self._domain_data, device.get("id"))
+                    self._heating_actuators_colleciton._heating_actuators.append(
                         _WiserHeatingActuator(
                             self._wiser_rest_controller,
                             device,
@@ -104,14 +107,14 @@ class _WiserDeviceCollection(object):
                     shutter_info = [
                         shutter
                         for shutter in self._domain_data.get("Shutter")
-                        if shutter.get("device_id") == device.get("id")
+                        if shutter.get("DeviceId") == device.get("id")
                     ]
                     shutter_schedule = [
                         schedule
                         for schedule in self._schedules
-                        if schedule.id == shutter_info[0].get("ScheduleId")
+                        if schedule.id == shutter_info[0].get("ScheduleId", 0)
                     ]
-                    self._shutter_collection._shutters.append(
+                    self._shutters_collection._shutters.append(
                         _WiserShutter(
                             self._wiser_rest_controller,
                             device,
@@ -121,18 +124,18 @@ class _WiserDeviceCollection(object):
                     )
 
                 # Add light object to collection
-                elif device.get("ProductType") == "eLight":
+                elif device.get("ProductType") == "DimmableLight":
                     light_info = [
                         light
                         for light in self._domain_data.get("Light")
-                        if light.get("device_id") == device.get("id")
+                        if light.get("DeviceId") == device.get("id")
                     ]
                     light_schedule = [
                         schedule
                         for schedule in self._schedules
                         if schedule.id == light_info[0].get("ScheduleId")
                     ]
-                    self._light_collection._lights.append(
+                    self._lights_collection._lights.append(
                         _WiserLight(
                             self._wiser_rest_controller,
                             device,
@@ -141,6 +144,17 @@ class _WiserDeviceCollection(object):
                         )
                     )
                     
+    def _get_temp_device_room_id(self, domain_data: dict, device_id: int) -> int:
+        rooms = domain_data.get("Room")
+        for room in rooms:
+            room_device_list = []
+            room_device_list.extend(room.get("SmartValveIds",[]))
+            room_device_list.extend(room.get("HeatingActuatorIds", []))
+            room_device_list.append(room.get("RoomStatId"))
+            if device_id in room_device_list:
+                return room.get("id")
+        return 0
+
 
 
     @property
