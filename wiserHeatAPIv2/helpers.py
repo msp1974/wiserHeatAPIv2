@@ -258,6 +258,16 @@ class _WiserNetwork:
     def signal_rssi(self) -> int:
         """Get the wifi signal rssi value"""
         return self._data.get("RSSI", {}).get("Current", 0)
+    
+    @property
+    def signal_rssi_min(self) -> int:
+        """Get the wifi signal min rssi value"""
+        return self._data.get("RSSI", {}).get("Min", 0)
+
+    @property
+    def signal_rssi_max(self) -> int:
+        """Get the wifi signal max rssi value"""
+        return self._data.get("RSSI", {}).get("Max", 0)
 
     @property
     def security_mode(self) -> str:
