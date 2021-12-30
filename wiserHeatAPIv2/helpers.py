@@ -162,29 +162,34 @@ class _WiserSignalStrength(object):
         return self._data.get("DisplayedSignalStrength", TEXT_UNKNOWN)
 
     @property
+    def controller_reception_lqi(self) -> int:
+        """Get the signal lqi (quality) for the controller"""
+        return self._data.get("ReceptionOfController", {"Lqi": 0}).get("Lqi", None)
+
+    @property
     def controller_reception_rssi(self) -> int:
         """Get the rssi (strength) of the controller signal"""
         return self._data.get("ReceptionOfController", {"Rssi": 0}).get("Rssi", None)
 
+    @property
+    def controller_signal_strength(self) -> int:
+        """Get the signal strength percent for the device"""
+        return min(100, int(2 * (self.controller_reception_rssi + 100))) if self.controller_reception_rssi != 0 else 0
+
+    @property
+    def device_reception_lqi(self) -> int:
+        """Get the signal lqi (quality) for the device"""
+        return self._data.get("ReceptionOfDevice", {"Lqi": 0}).get("Lqi", None)
+    
     @property
     def device_reception_rssi(self) -> int:
         """Get the rssi (strength) of the device signal"""
         return self._data.get("ReceptionOfDevice", {"Rssi": 0}).get("Rssi", None)
 
     @property
-    def controller_reception_lqi(self) -> int:
-        """Get the signal lqi (quality) for the controller"""
-        return self._data.get("ReceptionOfController", {"Lqi": 0}).get("Lqi", None)
-
-    @property
-    def device_reception_lqi(self) -> int:
-        """Get the signal lqi (quality) for the device"""
-        return self._data.get("ReceptionOfDevice", {"Lqi": 0}).get("Lqi", None)
-
-    @property
-    def signal_strength(self) -> int:
+    def device_signal_strength(self) -> int:
         """Get the signal strength percent for the device"""
-        return min(100, int(2 * (self.controller_reception_rssi + 100)))
+        return min(100, int(2 * (self.device_reception_rssi + 100))) if self.device_reception_rssi != 0 else 0
 
 class _WiserNetwork:
     """Data structure for network information for a Wiser Hub"""
