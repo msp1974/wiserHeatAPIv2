@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.14
+# Drayton Wiser Hub API v2 v0.0.15
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -86,3 +86,13 @@ Documentation available in [info.md](docs/info.md) in the docs directory and wit
 - Add support for Heating Actuator devices
 - Add basic support for Shutters
 - Add basic support for Lights
+
+### 0.0.14
+- Add room_id to all devices
+- Add heating_actuator_ids, number_of_heating_actuators, device_lock properties to Heating Actuator devices
+- Add additional overrides to _WiserElectricalDevice class
+- Add signal_rssi_min and signal_rssi_max to network property
+
+### 0.0.15
+- Fix json error when hub returns control characters in string
+
