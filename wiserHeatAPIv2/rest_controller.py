@@ -14,6 +14,8 @@ from .exceptions import (
     WiserHubRESTError
 )
 
+import json
+import re
 import requests
 
 # Connection info class
@@ -57,6 +59,10 @@ class _WiserRestController(object):
             )
             response.raise_for_status()
 
+            # The Wiser Heat Hub can return invalid JSON, so remove all non-printable characters before trying to parse JSON
+            response = re.sub(rb'[^\x20-\x7F]+', b'', response.content)
+            return json.loads(response)
+
         except requests.exceptions.ConnectTimeout:
             raise WiserHubConnectionError(
                 f"Connection timed out trying to update from Wiser Hub {self._wiser_connection.host}"
@@ -84,7 +90,6 @@ class _WiserRestController(object):
                 f"Chunked Encoding error trying to update from Wiser Hub {self._wiser_connection.host}"
             )
 
-        return response.json()
 
     def _patch_hub_data(self, url: str, patch_data: dict):
         """
