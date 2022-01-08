@@ -115,9 +115,6 @@ def anonymise_data(json_data: dict) -> dict:
                     key_data.append(anonymise_data(item))
                 json_data[key] = key_data
 
-
-
-
     return json_data
 
 
