@@ -94,12 +94,12 @@ def anonymise_data(json_data: dict) -> dict:
         'MacAddress': 'ANON_MAC',
         'HostName': 'WiserHeatXXXXXX',
         'MdnsHostname': 'WiserHeatXXXXXX',
-        'IPv4Address': '1.1.1.1',
-        'IPv4HostAddress': '1.1.1.1',
-        'IPv4DefaultGateway': '0.0.0.0',
-        'IPv4PrimaryDNS': '1.1.1.1',
-        'IPv4SecondaryDNS': '0.0.0.0',
-        'SSID': 'AnonomisedSSID',
+        'IPv4Address': 'ANON_IP',
+        'IPv4HostAddress': 'ANON_IP',
+        'IPv4DefaultGateway': 'ANON_IP',
+        'IPv4PrimaryDNS': 'ANON_IP',
+        'IPv4SecondaryDNS': 'ANON_IP',
+        'SSID': 'ANON_SSID',
         'DetectedAccessPoints': []
     }
 
