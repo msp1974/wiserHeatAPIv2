@@ -3,6 +3,7 @@
 
 This library implements the local REST API for the Drayton Wiser Heathub System.  The following services are implemented:
 
+- Command line interface for output of hub data to files
 - Hub Discovery
 - Rooms
 - iTRVs
@@ -13,6 +14,24 @@ This library implements the local REST API for the Drayton Wiser Heathub System.
 - System
 - Shutters (basic)
 - Lights (basic)
+
+## Command Line Interface
+
+In order to help with debugging, the api adds a command line option to output the hub json data to files in your home directory.  Use this as below from a command line:
+
+```
+wiser output [hostname/ip] [secret key] [output type]
+
+```
+
+Output types can be domain, network, schedule or all and will create respective json output files in your home directory in a wiser_data subdirectory.
+Any sensitive data is anonomised (gps location, IPs, serial numbers etc) to allow uploading to a github issue ticket without fear of exposing sensitive information.
+The cli has an option to not anonomise this sensitive data should you wish to see the raw output, by providing a -r option.
+
+```
+wiser output -r [hostname/ip] [secret key] [output type]
+```
+
 
 ## Hub Discovery
 
