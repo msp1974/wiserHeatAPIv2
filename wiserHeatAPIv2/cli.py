@@ -105,16 +105,15 @@ def anonymise_data(json_data: dict) -> dict:
 
     if isinstance(json_data, dict):
         for key, value in json_data.items():
-            if key in replacements:
-                json_data[key] = replacements[key]
             if isinstance(value, dict):
                 json_data[key] = anonymise_data(value)
-            if isinstance(value, list):
+            elif isinstance(value, list):
                 key_data = []
                 for item in value:
                     key_data.append(anonymise_data(item))
                 json_data[key] = key_data
-
+            elif key in replacements:
+                json_data[key] = replacements[key]
     return json_data
 
 
