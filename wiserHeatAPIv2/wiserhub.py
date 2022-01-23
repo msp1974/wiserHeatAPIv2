@@ -135,7 +135,7 @@ class WiserAPI(object):
 
             # If gets here with no exceptions then success and return true
             return True
-            
+
         return False
         
 
@@ -164,11 +164,6 @@ class WiserAPI(object):
     def rooms(self):
         """List of room entities configured on the Wiser Hub"""
         return self._rooms
-
-    @property
-    def schedules(self):
-        """List of schedule entities on the Wiser Hub"""
-        return self._schedules
 
     @property
     def system(self):
