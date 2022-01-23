@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.16
+# Drayton Wiser Hub API v2 v0.0.17
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -99,3 +99,8 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 ### 0.0.16
 - Added a cli interface to output json data from the hub for debugging
 
+### 0.0.17
+- Fixed path pointed to local dev machine instead of install dir for test scripts
+- Fixed documentation link on Pypi
+- Amended evaluation order for json sub branches in cli
+- Added retries and backoff factor to improve hub connections on poor networks
