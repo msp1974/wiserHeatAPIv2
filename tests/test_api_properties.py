@@ -1,7 +1,8 @@
 from params import HOST, KEY
 
+import pathlib
 import sys
-sys.path.append('/home/mark/development/wiserHeatAPIv2/')
+sys.path.append(pathlib.Path(__file__).parent.resolve())
 
 from wiserHeatAPIv2.const import TEXT_UNKNOWN
 from wiserHeatAPIv2 import wiserhub
