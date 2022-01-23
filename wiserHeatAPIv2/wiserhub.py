@@ -84,7 +84,7 @@ class WiserAPI(object):
         ):
             self.read_hub_data()
         else:
-            raise WiserHubConnectionError("No or incomplete connection information")
+            raise WiserHubConnectionError("Missing or incomplete connection information")
 
 
     def read_hub_data(self):
