@@ -41,7 +41,7 @@ To help understand the api simply look at the test sample code ```tests/test_api
 
 ## 6. Documentation
 
-Documentation available in [info.md](docs/info.md) in the docs directory and within comments in the code
+Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/blob/master/docs/info.md) in the docs directory and within comments in the code
 
 *Changelog*
 
@@ -72,7 +72,7 @@ Documentation available in [info.md](docs/info.md) in the docs directory and wit
 - Cleaned up unnecessary code
 
 ### 0.0.10
-- Added documentation on usage and examples [see info.md](docs/info.md)
+- Added documentation on usage and examples [see info.md](https://github.com/msp1974/wiserHeatAPIv2/blob/master/docs/info.md)
 - Discovery now returns class object
 - Fix bug in away_mode_target_temperature setter
 
