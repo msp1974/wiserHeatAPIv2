@@ -17,6 +17,7 @@ from .exceptions import (
 )
 
 import json
+import logging
 import re
 import requests
 from requests.adapters import HTTPAdapter
@@ -53,7 +54,8 @@ class _WiserRestController(object):
                 "Content-Type": "application/json;charset=UTF-8",
             }
         )
-        urllib3.disable_warnings()
+        logging.getLogger('urllib3.connectionpool').setLevel(logging.CRITICAL)
+        logging.getLogger('urllib3.util.retry').setLevel(logging.CRITICAL)
 
 
     def _get_hub_data(self, url: str):
