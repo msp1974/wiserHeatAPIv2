@@ -1,6 +1,8 @@
 from . import _LOGGER
 
 from .const import (
+    REST_BACKOFF_FACTOR,
+    REST_RETRIES,
     REST_TIMEOUT,
     WISERHUBDOMAIN,
     WISERHUBNETWORK,
@@ -17,6 +19,9 @@ from .exceptions import (
 import json
 import re
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+import urllib3
 
 # Connection info class
 class _WiserConnection(object):
@@ -32,17 +37,24 @@ class _WiserRestController(object):
     """
     def __init__(self, wiser_connection:_WiserConnection):
         self._wiser_connection = wiser_connection
+        
+        # Settings for all API calls
+        retries = Retry(
+            total=REST_RETRIES, 
+            backoff_factor=REST_BACKOFF_FACTOR, 
+            status_forcelist=[429, 500, 502, 503, 504]
+        )
+        adapter = HTTPAdapter(max_retries=retries)
+        self._requests_session = requests.Session()
+        self._requests_session.mount("http://", adapter)
+        self._requests_session.headers.update(
+            {
+                "SECRET": self._wiser_connection.secret,
+                "Content-Type": "application/json;charset=UTF-8",
+            }
+        )
+        urllib3.disable_warnings()
 
-
-    def _get_headers(self):
-        """
-        Define headers for wiser hub api calls
-        return: json object
-        """
-        return {
-            "SECRET": self._wiser_connection.secret,
-            "Content-Type": "application/json;charset=UTF-8",
-        }
 
     def _get_hub_data(self, url: str):
         """
@@ -50,45 +62,39 @@ class _WiserRestController(object):
         param url: url of hub rest api endpoint
         return: json object
         """
-        url = url.format(self._wiser_connection.host)
         try:
-            response = requests.get(
-                url,
-                headers=self._get_headers(),
+            response = self._requests_session.get(
+                url.format(self._wiser_connection.host),
                 timeout=REST_TIMEOUT,
             )
-            response.raise_for_status()
 
-            # The Wiser Heat Hub can return invalid JSON, so remove all non-printable characters before trying to parse JSON
-            response = re.sub(rb'[^\x20-\x7F]+', b'', response.content)
-            return json.loads(response)
-
-        except requests.exceptions.ConnectTimeout:
-            raise WiserHubConnectionError(
-                f"Connection timed out trying to update from Wiser Hub {self._wiser_connection.host}"
-            )
-
-        except requests.HTTPError as ex:
-            if ex.response.status_code == 401:
-                raise WiserHubAuthenticationError(
-                    f"Error authenticating to Wiser Hub {self._wiser_connection.host}.  Check your secret key"
-                )
-            elif ex.response.status_code == 404:
-                raise WiserHubRESTError(f"Rest endpoint not found on Wiser Hub {self._wiser_connection.host}")
+            if not response.ok:
+                self._process_nok_response(response)
+                return {}
             else:
-                raise WiserHubRESTError(
-                    f"Unknown error getting data from Wiser Hub {self._wiser_connection.host}.  Error code is: {ex.response.status_code}"
-                )
+                if len(response.content) > 0:
+                    response = re.sub(rb'[^\x20-\x7F]+', b'', response.content)
+                    return json.loads(response)
 
-        except requests.exceptions.ConnectionError:
-            raise WiserHubConnectionError(
-                f"Connection error trying to update from Wiser Hub {self._wiser_connection.host}"
-            )
+            return {}
 
-        except requests.exceptions.ChunkedEncodingError:
+        except requests.exceptions.ConnectTimeout as ex:
             raise WiserHubConnectionError(
-                f"Chunked Encoding error trying to update from Wiser Hub {self._wiser_connection.host}"
+                f"Connection timeout trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
             )
+        except requests.exceptions.ReadTimeout as ex:
+            raise WiserHubConnectionError(
+                f"Read timeout error trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
+            )
+        except requests.exceptions.ChunkedEncodingError as ex:
+            raise WiserHubConnectionError(
+                f"Chunked Encoding error trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
+            )
+        except requests.exceptions.ConnectionError as ex:
+            raise WiserHubConnectionError(
+                f"Connection error trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
+            )
+        
 
 
     def _patch_hub_data(self, url: str, patch_data: dict):
@@ -99,45 +105,54 @@ class _WiserRestController(object):
         return: boolean
         """
         try:
-            response = requests.patch(
+            response = self._requests_session.patch(
                 url=url,
-                headers=self._get_headers(),
                 json=patch_data,
                 timeout=REST_TIMEOUT,
             )
-            # TODO: Improve error handling (maybe inc retry?)
-            response.raise_for_status()
 
-        except requests.exceptions.ConnectTimeout:
+            if not response.ok:
+                self._process_nok_response(response)
+                return False
+            else:
+                return True
+
+        except requests.exceptions.ConnectTimeout as ex:
             raise WiserHubConnectionError(
-                "Connection timed out trying to send command to Wiser Hub"
+                f"Connection timeout trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
+            )
+        except requests.exceptions.ReadTimeout as ex:
+            raise WiserHubConnectionError(
+                f"Read timeout error trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
+            )
+        except requests.exceptions.ChunkedEncodingError as ex:
+            raise WiserHubConnectionError(
+                f"Chunked Encoding error trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
+            )
+        except requests.exceptions.ConnectionError as ex:
+            raise WiserHubConnectionError(
+                f"Connection error trying to update from Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
             )
 
-        except requests.HTTPError as ex:
-            if ex.response.status_code == 401:
+
+    def _process_nok_response(self, response):
+
+            if response.status_code == 401:
                 raise WiserHubAuthenticationError(
-                    "Error authenticating to Wiser Hub.  Check your secret key"
+                    f"Error authenticating to Wiser Hub {self._wiser_connection.host}.  Check your secret key"
                 )
-            elif ex.response.status_code == 404:
-                raise WiserHubRESTError("Rest endpoint not found on Wiser Hub")
+            elif response.status_code == 404:
+                raise WiserHubRESTError(
+                    f"Rest endpoint not found on Wiser Hub {self._wiser_connection.host}"
+                )
+            elif response.status_code == 408:
+                raise WiserHubConnectionError(
+                    f"Connection timed out trying to update from Wiser Hub {self._wiser_connection.host}"
+                )
             else:
                 raise WiserHubRESTError(
-                    "Error setting {} , error {} {}".format(
-                        patch_data, response.status_code, response.text
-                    )
+                    f"Unknown error getting data from Wiser Hub {self._wiser_connection.host}.  Error code is: {response.status_code}"
                 )
-
-        except requests.exceptions.ConnectionError:
-            raise WiserHubConnectionError(
-                "Connection error trying to send command to Wiser Hub"
-            )
-
-        except requests.exceptions.ChunkedEncodingError:
-            raise WiserHubConnectionError(
-                "Chunked Encoding error trying to send command to Wiser Hub"
-            )
-
-        return True
 
     def _send_command(self, url: str, command_data: dict):
         """
