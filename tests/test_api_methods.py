@@ -1,3 +1,4 @@
+from typing import Any
 from params import HOST, KEY
 
 import pathlib
@@ -44,6 +45,13 @@ def fn(h: object, fn_name: str, args: dict = {}):
         print(f"{bcolors.FAIL}ERROR - {ex}{bcolors.NORMAL}")
         raise ex
 
+def p(h: object, prop_name: str, value):
+    print(f"Setting property {prop_name} with value {value}")
+    try:
+        p = setattr(h, prop_name, value)
+        print(f"{bcolors.OKGREEN}Passed{bcolors.NORMAL}")
+    except Exception as ex:
+        print(f"{bcolors.FAIL}ERROR - {ex}{bcolors.NORMAL}")
  
 def test_methods(h: wiserhub.WiserAPI):
 
@@ -64,6 +72,10 @@ def test_methods(h: wiserhub.WiserAPI):
         fn(room, "set_manual_temperature", {"temp":16})
         fn(room, "schedule_advance", {})
         fn(room, "cancel_overrides", {})
+
+        p(room, "mode", "OFF")
+        p(room, "mode", "auto")
+        
 
         
         # Schedules
