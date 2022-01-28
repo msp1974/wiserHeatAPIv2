@@ -2,6 +2,9 @@ import argparse
 import json
 import logging
 import pathlib
+from sys import version_info
+
+from . import __VERSION__
 
 from .const import (
     WISERHUBDOMAIN,
@@ -28,6 +31,9 @@ def main_parser() -> argparse.ArgumentParser:
     _add_default_arguments(output_parser)
     output_parser.add_argument('type', help='What to output. Possible values are domain/network/schedule/all')
     output_parser.set_defaults(func=output_json)
+
+    version_parser = subparsers.add_parser('version', description='Show api version')
+    version_parser.set_defaults(func=show_version)
 
     return parser
 
@@ -58,6 +64,9 @@ def output_json(args) -> None:
         print("Your Wiser HeatHub returned an incorrectly formatted response.  Please check you are conncting to the correct device and try again.")
     except Exception as ex:
         print(f"Unknown error getting json data from your Wiser HeatHub.  Error is {ex}")
+
+def show_version(args) -> None:
+    print(f"API version is {__VERSION__}")
 
 
 def _add_default_arguments(parser: argparse.ArgumentParser):
