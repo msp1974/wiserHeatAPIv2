@@ -45,10 +45,10 @@ class _WiserRoom(object):
 
     def _effective_heating_mode(self, mode: str, temp: float) -> str:
         if mode.casefold() == TEXT_MANUAL.casefold() and temp == TEMP_OFF:
-            return TEXT_OFF
+            return WiserHeatingModeEnum["off"].value
         elif mode.casefold() == TEXT_MANUAL.casefold():
-            return TEXT_MANUAL
-        return TEXT_AUTO
+            return WiserHeatingModeEnum["manual"].value
+        return WiserHeatingModeEnum["auto"].value
 
     def _send_command(self, cmd: dict):
         """
@@ -168,25 +168,33 @@ class _WiserRoom(object):
     @property
     def mode(self) -> str:
         """Get or set current mode for the room (Off, Manual, Auto)"""
-        return WiserHeatingModeEnum[self._mode.lower()].value
+        return self._mode
 
     @mode.setter
     def mode(self, mode: str):
-        if mode.casefold() == WiserHeatingModeEnum.off.value.casefold():
-            self.set_manual_temperature(TEMP_OFF)
-        elif mode.casefold() == WiserHeatingModeEnum.manual.value.casefold():
-            if self._send_command({"Mode": WiserHeatingModeEnum.manual.value}):
-                if self.current_target_temperature == TEMP_OFF:
-                    self.set_target_temperature(self.scheduled_target_temperature)
-        elif mode.casefold() == WiserHeatingModeEnum.auto.value.casefold():
+
+        # Validate mode is valid or raise value error
+        try:
+            mode = WiserHeatingModeEnum[mode.lower()]
+
+            # Cancel any overrides on mode change
             if self.is_override:
                 self.cancel_overrides()
-            self._send_command({"Mode": WiserHeatingModeEnum.auto.value})
-        else:
+
+            if mode == WiserHeatingModeEnum.off:
+                self.set_manual_temperature(TEMP_OFF)
+            elif mode == WiserHeatingModeEnum.manual:
+                if self._send_command({"Mode": WiserHeatingModeEnum.manual.value}):
+                    if self.current_target_temperature == TEMP_OFF:
+                        self.set_target_temperature(self.scheduled_target_temperature)
+            elif mode == WiserHeatingModeEnum.auto:
+                self._send_command({"Mode": WiserHeatingModeEnum.auto.value})
+
+            self._mode = mode.value
+        except KeyError:
             raise ValueError(
                 f"{mode} is not a valid Heating mode.  Valid modes are {self.available_modes}"
             )
-        self._mode = WiserHeatingModeEnum[mode.lower()].value
 
     @property
     def name(self) -> str:
