@@ -75,7 +75,7 @@ def _add_default_arguments(parser: argparse.ArgumentParser):
     parser.add_argument('secret', help='Heathub secret key')
 
 
-def log_response_to_file(json_data: str, logfilename: str, raw: bool = False, log_responses: pathlib.Path = pathlib.Path.home()) -> None:
+def log_response_to_file(json_data: str, logfilename: str, raw: bool, log_responses: pathlib.Path = pathlib.Path.home()) -> None:
         """If a log path is set, log all resonses to a file."""
         if logfilename is None:
             return
