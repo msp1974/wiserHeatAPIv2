@@ -138,10 +138,6 @@ class _WiserRestController(object):
 
 
     def _process_nok_response(self, response):
-            """
-            Process non 200 response code from rest call and raise appropriate error
-            param response: response object from request
-            """
 
             if response.status_code == 401:
                 raise WiserHubAuthenticationError(
