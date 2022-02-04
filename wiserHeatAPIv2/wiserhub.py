@@ -16,7 +16,6 @@ This API allows you to get information from and control your wiserhub.
 
 # TODO: Keep objects and update instead of recreating on hub update
 # TODO: Update entity values after commend issued to get current values
-import pathlib
 from . import _LOGGER, __VERSION__
 
 from .const import (
@@ -41,7 +40,6 @@ from .exceptions import (
     WiserHubRESTError,
 )
 
-from .cli import log_response_to_file
 from .devices import _WiserDeviceCollection
 from .heating import _WiserHeatingChannelCollection
 from .hot_water import _WiserHotwater
@@ -180,27 +178,3 @@ class WiserAPI(object):
     @units.setter
     def units(self, units: WiserUnitsEnum):
         self._wiser_api_connection.units = units
-
-    def output_raw_hub_data(self, data_class: str, filename: str, file_path: str) -> bool:
-        """Output raw hub data to json file"""
-        # Get correct endpoint
-        if data_class.lower() == 'domain':
-            endpoint = WISERHUBDOMAIN
-        elif data_class.lower() == 'network':
-            endpoint = WISERHUBNETWORK
-        elif data_class == 'schedules':
-            endpoint = WISERHUBSCHEDULES
-        else:
-            endpoint = None
-
-        # Get raw json data
-        if endpoint:
-            data = self._wiser_rest_controller._get_hub_data(endpoint)
-            try:
-                if data:
-                    # Write out to file
-                    log_response_to_file(data, filename, False, pathlib.Path(file_path))
-                    return True
-            except Exception as ex:
-                _LOGGER.error(ex)
-                return False
