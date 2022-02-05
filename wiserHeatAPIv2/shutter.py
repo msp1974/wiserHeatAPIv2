@@ -163,15 +163,25 @@ class _WiserShutter(_WiserElectricalDevice):
         return self._schedule
 
     @property
-    def shutter_id(self) -> int:
-        """Get id of shutter"""
-        return self._device_type_data.get("id", 0)
-    
+    def schedule_id(self) -> int:
+        """Get the schedule id for the room"""
+        return self._data.get("ScheduleId")
+
     @property
     def scheduled_lift(self) -> str:
         """Get the current scheduled lift of the shutter"""
         return self._device_type_data.get("ScheduledLift", TEXT_UNKNOWN)
-      
+
+    @property
+    def shutter_id(self) -> int:
+        """Get id of shutter"""
+        return self._device_type_data.get("id", 0)
+
+    @property
+    def target_lift(self) -> int:
+        """Get target position of shutter"""
+        return self._device_type_data.get("TargetLift", 0)
+
 
 class _WiserShutterCollection(object):
     """Class holding all wiser heating actuators"""
