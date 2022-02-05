@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.18
+# Drayton Wiser Hub API v2 v0.0.19
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -105,6 +105,7 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Amended evaluation order for json sub branches in cli
 - Added retries and backoff factor to improve hub connections on poor networks
 
-### 0.0.18
+### 0.0.19
 - Fixed issue where setting mode to off when boosted did not cancel boost
 - Added version command to cli to output API version
+- Bump ruamel.yaml to 0.17.20
