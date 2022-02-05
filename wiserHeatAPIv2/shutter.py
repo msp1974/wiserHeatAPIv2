@@ -2,7 +2,7 @@ from . import _LOGGER
 import enum
 
 from .device import _WiserElectricalDevice
-from .helpers import _WiserTemperatureFunctions as tf
+from .helpers import _WiserLiftMovementRange, _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
@@ -95,6 +95,11 @@ class _WiserShutter(_WiserElectricalDevice):
         return self._device_type_data.get("CurrentLift", 0)
 
     @property
+    def drive_config(self) -> _WiserLiftMovementRange:
+        """Get open and close time drive config"""
+        return _WiserLiftMovementRange(self._device_type_data.get("DriveConfig", None))
+
+    @property
     def identify(self) -> bool:
         """Get or set if the shutter identify function is enabled"""
         return self._indentify_active
@@ -105,9 +110,14 @@ class _WiserShutter(_WiserElectricalDevice):
             self._indentify_active = enable
 
     @property
-    def manual_lift(self) -> int:
-        """Get shutter manual lift value"""
-        return self._device_type_data.get("ManualLift", 0)
+    def is_open(self) -> bool:
+        """Get if the shutter is open"""
+        return True if self._device_type_data.get("CurrentLift", 0) == 100 else False
+
+    @property
+    def is_closed(self) -> bool:
+        """Get if the shutter is closed"""
+        return True if self._device_type_data.get("CurrentLift", 0) == 0 else False
 
     @property
     def lift_open_time(self) -> int:
@@ -123,11 +133,11 @@ class _WiserShutter(_WiserElectricalDevice):
     def lift_movement(self) -> str:
         """Get if shutter is moving"""
         return self._device_type_data.get("LiftMovement", TEXT_UNKNOWN)
-
+    
     @property
-    def manual_lift(self) -> str:
-        """Get the current manual lift of the shutter"""
-        return self._device_type_data.get("ManualLift", TEXT_UNKNOWN)
+    def manual_lift(self) -> int:
+        """Get shutter manual lift value"""
+        return self._device_type_data.get("ManualLift", 0)
 
     @property
     def mode(self) -> str:
@@ -153,16 +163,6 @@ class _WiserShutter(_WiserElectricalDevice):
             self._name = name
 
     @property
-    def is_open(self) -> bool:
-        """Get if the shutter is open"""
-        return True if self._device_type_data.get("CurrentLift", 0) == 100 else False
-
-    @property
-    def is_closed(self) -> bool:
-        """Get if the shutter is closed"""
-        return True if self._device_type_data.get("CurrentLift", 0) == 0 else False
-
-    @property
     def room_id(self) -> int:
         """Get smart plug room id"""
         return self._device_type_data.get("RoomId", 0)
@@ -171,16 +171,16 @@ class _WiserShutter(_WiserElectricalDevice):
     def schedule(self):
         """Get the schedule of the smart plug"""
         return self._schedule
-    
-    @property
-    def scheduled_lift(self) -> str:
-        """Get the current scheduled lift of the shutter"""
-        return self._device_type_data.get("ScheduledLift", TEXT_UNKNOWN)
 
     @property
     def shutter_id(self) -> int:
         """Get id of shutter"""
         return self._device_type_data.get("id", 0)
+    
+    @property
+    def scheduled_lift(self) -> str:
+        """Get the current scheduled lift of the shutter"""
+        return self._device_type_data.get("ScheduledLift", TEXT_UNKNOWN)
       
 
 class _WiserShutterCollection(object):
