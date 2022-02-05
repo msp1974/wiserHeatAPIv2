@@ -2,6 +2,7 @@ from . import _LOGGER
 import enum
 
 from .device import _WiserElectricalDevice
+from .helpers import _WiserOutputRange
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
@@ -114,6 +115,21 @@ class _WiserLight(_WiserElectricalDevice):
             self._indentify_active = enable
 
     @property
+    def is_dimmable(self) -> bool:
+        """Get if the light is dimmable"""
+        return True if self._device_type_data.get("IsDimmable", False) else False
+
+    @property
+    def is_on(self) -> bool:
+        """Get if the light is on"""
+        return True if self._device_type_data.get("CurrentState", TEXT_OFF) == TEXT_ON else False
+
+    @property
+    def light_id(self) -> int:
+        """Get id of light"""
+        return self._device_type_data.get("id", 0)
+
+    @property
     def mode(self) -> str:
         """Get or set the current mode of the light (Manual or Auto)"""
         return WiserLightModeEnum[self._mode.lower()].value
@@ -137,19 +153,8 @@ class _WiserLight(_WiserElectricalDevice):
             self._name = name
 
     @property
-    def is_dimmable(self) -> bool:
-        """Get if the light is dimmable"""
-        return True if self._device_type_data.get("IsDimmable", False) else False
-
-    @property
-    def is_on(self) -> bool:
-        """Get if the light is on"""
-        return True if self._device_type_data.get("CurrentState", TEXT_OFF) == TEXT_ON else False
-
-    @property
-    def light_id(self) -> int:
-        """Get id of light"""
-        return self._device_type_data.get("id", 0)
+    def output_range(self) -> _WiserOutputRange:
+        return _WiserOutputRange(self._device_type_data.get("OutputRange", None))
 
     @property
     def room_id(self) -> int:
