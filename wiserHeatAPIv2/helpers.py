@@ -432,4 +432,42 @@ class _WiserHubCapabilitiesInfo:
         except IndexError:
             return None
 
+class _WiserOutputRange(object):
+    """ Data structure for min/max output range"""
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def min(self) -> int:
+        """Get min value"""
+        if self._data:
+            return self._data.get("Minimum")
+        return None
+
+    @property
+    def max(self) -> int:
+        """Get max value"""
+        if self._data:
+            return self._data.get("Maximum")
+        return None
+
+class _WiserLiftMovementRange(object):
+    """ Data structure for min/max output range"""
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def open_time(self) -> int:
+        """Get open time value"""
+        if self._data:
+            return self._data.get("LiftOpenTime")
+        return None
+
+    @property
+    def close_time(self) -> int:
+        """Get close time value"""
+        if self._data:
+            return self._data.get("LiftCloseTime")
+        return None
+
     
