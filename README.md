@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.19
+# Drayton Wiser Hub API v2 v0.0.20
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -105,7 +105,12 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Amended evaluation order for json sub branches in cli
 - Added retries and backoff factor to improve hub connections on poor networks
 
-### 0.0.19
+### 0.0.20
 - Fixed issue where setting mode to off when boosted did not cancel boost
+- Bump ruamel.yaml to 0.17.20 to fix incompatibilitty issue with Python 3.10 - Issue [#2](https://github.com/msp1974/wiserHeatAPIv2/issues/2)
 - Added version command to cli to output API version
-- Bump ruamel.yaml to 0.17.20
+- Added new properties to lights
+- Added new properties to shutters
+- Added new class for shutter lift range
+- Added new method to write json output to file (output_raw_hub_data)
+- Removed lift_open_time and lift_close_time and replace with _WiserLiftMovementRange class
