@@ -120,16 +120,6 @@ class _WiserShutter(_WiserElectricalDevice):
         return True if self._device_type_data.get("CurrentLift", 0) == 0 else False
 
     @property
-    def lift_open_time(self) -> int:
-        """Get lift open time of shutter"""
-        return self._device_type_data.get("DriveConfig", {'LiftOpenTime': 0}).get("LiftOpenTime")
-
-    @property
-    def lift_close_time(self) -> int:
-        """Get lift close time of shutter"""
-        return self._device_type_data.get("DriveConfig", {'LiftCloseTime': 0}).get("LiftCloseTime")
-
-    @property
     def lift_movement(self) -> str:
         """Get if shutter is moving"""
         return self._device_type_data.get("LiftMovement", TEXT_UNKNOWN)
