@@ -165,6 +165,22 @@ class _WiserLight(_WiserElectricalDevice):
     def schedule(self):
         """Get the schedule of the smart plug"""
         return self._schedule
+
+    @property
+    def schedule_id(self) -> int:
+        """Get the schedule id for the room"""
+        return self._data.get("ScheduleId")
+
+    @property
+    def target_state(self) -> int:
+        """Get target state of light"""
+        return self._device_type_data.get("TargetState", 0)
+    
+    @property
+    def target_percentage(self) -> int:
+        """Get target percentage brightness of light"""
+        return self._device_type_data.get("TargetPercentage", 0)
+
       
 
 class _WiserLightCollection(object):
