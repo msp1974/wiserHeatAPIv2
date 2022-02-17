@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.20
+# Drayton Wiser Hub API v2 v0.0.21
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -114,3 +114,8 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Added new class for shutter lift range
 - Added new method to write json output to file (output_raw_hub_data)
 - Removed lift_open_time and lift_close_time and replace with _WiserLiftMovementRange class
+
+### 0.0.21
+- Added commands to control lights
+- Added commands to control shutters
+- Restructured schedules to manage heating, onoff and level types and their variation
