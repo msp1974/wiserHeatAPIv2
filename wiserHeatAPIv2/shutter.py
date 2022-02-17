@@ -94,9 +94,18 @@ class _WiserShutter(_WiserElectricalDevice):
         """Get amount shutter is open"""
         return self._device_type_data.get("CurrentLift", 0)
 
+    @current_lift.setter
+    def current_lift(self, percentage: int):
+        """ Open shutter to defined level """
+        if percentage >= 0 and percentage <= 100:
+            self._send_command({"Action": "LiftTo", "Percentage": percentage})
+        else:
+            raise ValueError(f"Shutter percentage must be between 0 and 100")
+
     @property
     def drive_config(self) -> _WiserLiftMovementRange:
         """Get open and close time drive config"""
+        #TODO:  Add setter for drive open/close times
         return _WiserLiftMovementRange(self._device_type_data.get("DriveConfig", None))
 
     @property
@@ -181,6 +190,19 @@ class _WiserShutter(_WiserElectricalDevice):
     def target_lift(self) -> int:
         """Get target position of shutter"""
         return self._device_type_data.get("TargetLift", 0)
+
+    def open(self):
+        """ Fully open shutter """
+        self._send_command({"RequestAction":{"Action": "LiftTo", "Percentage": 100}})
+
+    def close(self):
+        """ Fully close shutter """
+        self._send_command({"RequestAction":{"Action": "LiftTo", "Percentage": 0}})
+
+    def stop(self):
+        """ Stop shutter during movement """
+        self._send_command({"RequestAction":{"Action": "Stop"}})
+
 
 
 class _WiserShutterCollection(object):
