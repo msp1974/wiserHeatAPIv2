@@ -28,6 +28,7 @@ class _WiserLight(_WiserElectricalDevice):
         self._device_type_data = device_type_data
         self._schedule = schedule
         self._away_action = device_type_data.get("AwayAction", TEXT_UNKNOWN)
+        self._current_state = self._device_type_data.get("CurrentState", TEXT_OFF)
         self._mode = device_type_data.get("Mode", TEXT_UNKNOWN)
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
@@ -99,6 +100,18 @@ class _WiserLight(_WiserElectricalDevice):
         """Get percentage amount light is on"""
         return self._device_type_data.get("CurrentPercentage", 0)
 
+    @current_percentage.setter
+    def current_percentage(self, percentage: int):
+        """Set current brightness percentage"""
+        if percentage >= 0 and percentage <= 100:
+            self._send_command(
+                {"RequestOverride":
+                    {"State": TEXT_ON, "Percentage": percentage}
+                }
+            )
+        else:
+            raise ValueError(f"Brightness level percentage must be between 0 and 100")
+
     @property
     def current_state(self) -> str:
         """Get if light is on"""
@@ -122,7 +135,7 @@ class _WiserLight(_WiserElectricalDevice):
     @property
     def is_on(self) -> bool:
         """Get if the light is on"""
-        return True if self._device_type_data.get("CurrentState", TEXT_OFF) == TEXT_ON else False
+        return True if self._current_state == TEXT_ON else False
 
     @property
     def light_id(self) -> int:
@@ -154,6 +167,8 @@ class _WiserLight(_WiserElectricalDevice):
 
     @property
     def output_range(self) -> _WiserOutputRange:
+        """Get output range min/max."""
+        #TODO: Add setter for min max values
         return _WiserOutputRange(self._device_type_data.get("OutputRange", None))
 
     @property
@@ -180,6 +195,34 @@ class _WiserLight(_WiserElectricalDevice):
     def target_percentage(self) -> int:
         """Get target percentage brightness of light"""
         return self._device_type_data.get("TargetPercentage", 0)
+
+    def turn_on(self) -> bool:
+        """
+        Turn on the light at current brightness leve
+        return: boolean
+        """
+        result = self._send_command(
+            {"RequestOverride":
+                {"State": TEXT_ON}
+            }
+        )
+        if result:
+            self._current_state = TEXT_ON
+        return result
+
+    def turn_off(self) -> bool:
+        """
+        Turn off the light
+        return: boolean
+        """
+        result = self._send_command(
+            {"RequestOverride":
+                {"State": TEXT_OFF}
+            }
+        )
+        if result:
+            self._current_state = TEXT_OFF
+        return result
 
       
 
