@@ -4,7 +4,7 @@ from .const import TEXT_UNKNOWN
 
 from .rest_controller import _WiserRestController
 from .roomstat import _WiserRoomStat, _WiserRoomStatCollection
-from .schedule import _WiserScheduleCollection
+from .schedule import _WiserScheduleCollection, WiserScheduleType
 from .smartplug import _WiserSmartPlug, _WiserSmartPlugCollection
 from .smartvalve import _WiserSmartValve, _WiserSmartValveCollection
 from .heating_actuator import _WiserHeatingActuator, _WiserHeatingActuatorCollection
@@ -18,7 +18,7 @@ class _WiserDeviceCollection(object):
         self._wiser_rest_controller = wiser_rest_controller
         self._device_data = domain_data.get("Device", {})
         self._domain_data = domain_data
-        self._schedules = schedules.all
+        self._schedules = schedules
 
         self._smartvalves_collection = _WiserSmartValveCollection()
         self._roomstats_collection = _WiserRoomStatCollection()
@@ -74,7 +74,7 @@ class _WiserDeviceCollection(object):
                     ]
                     smartplug_schedule = [
                         schedule
-                        for schedule in self._schedules
+                        for schedule in self._schedules.get_by_type(WiserScheduleType.onoff)
                         if schedule.id == smartplug_info[0].get("ScheduleId")
                     ]
                     self._smartplugs_collection._smartplugs.append(
@@ -111,7 +111,7 @@ class _WiserDeviceCollection(object):
                     ]
                     shutter_schedule = [
                         schedule
-                        for schedule in self._schedules
+                        for schedule in self._schedules.get_by_type(WiserScheduleType.level)
                         if schedule.id == shutter_info[0].get("ScheduleId", 0)
                     ]
                     self._shutters_collection._shutters.append(
@@ -132,7 +132,7 @@ class _WiserDeviceCollection(object):
                     ]
                     light_schedule = [
                         schedule
-                        for schedule in self._schedules
+                        for schedule in self._schedules.get_by_type(WiserScheduleType.level)
                         if schedule.id == light_info[0].get("ScheduleId")
                     ]
                     self._lights_collection._lights.append(

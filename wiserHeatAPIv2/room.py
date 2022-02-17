@@ -370,7 +370,7 @@ class _WiserRoomCollection(object):
 
         self._wiser_rest_controller = wiser_rest_controller
         self._room_data = room_data
-        self._schedules = schedules.all
+        self._schedules = schedules
         self._devices = devices
         self._rooms = []
 
