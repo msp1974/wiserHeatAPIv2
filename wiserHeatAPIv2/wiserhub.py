@@ -104,12 +104,12 @@ class WiserAPI(object):
             # Schedules Collection
             self._schedules = _WiserScheduleCollection(self._wiser_rest_controller, _schedule_data)
 
-            # Devices Collection
-            self._devices = _WiserDeviceCollection(self._wiser_rest_controller, _domain_data, self._schedules )
-
             # System Object
             _device_data = _domain_data.get("Device", [])
             self._system = _WiserSystem(self._wiser_rest_controller, _domain_data, _network_data, _device_data)
+
+            # Devices Collection
+            self._devices = _WiserDeviceCollection(self._wiser_rest_controller, _domain_data, self._schedules )
 
             # Rooms Collection
             room_data = _domain_data.get("Room", [])
