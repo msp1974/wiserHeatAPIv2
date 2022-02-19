@@ -41,12 +41,12 @@ class _WiserLight(_WiserElectricalDevice):
         return: boolen - true = success, false = failed
         """
         if device_level:
-            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.id), cmd)
+            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.light_id), cmd)
         else:
-            result = self._wiser_rest_controller._send_command(WISERLIGHT.format(self.id), cmd)
+            result = self._wiser_rest_controller._send_command(WISERLIGHT.format(self.light_id), cmd)
         if result:
             _LOGGER.debug(
-                "Wiser heating actuator - {} command successful".format(
+                "Wiser light - {} command successful".format(
                     inspect.stack()[1].function
                 )
             )
@@ -87,7 +87,7 @@ class _WiserLight(_WiserElectricalDevice):
 
     @property
     def control_source(self) -> str:
-        """Get the current control source of the shutter"""
+        """Get the current control source of the light"""
         return self._device_type_data.get("ControlSource", TEXT_UNKNOWN)
 
     @property
@@ -178,12 +178,12 @@ class _WiserLight(_WiserElectricalDevice):
 
     @property
     def schedule(self):
-        """Get the schedule of the smart plug"""
+        """Get the schedule of the light"""
         return self._schedule
 
     @property
     def schedule_id(self) -> int:
-        """Get the schedule id for the room"""
+        """Get the schedule id for the light"""
         return self._data.get("ScheduleId")
 
     @property
@@ -198,7 +198,7 @@ class _WiserLight(_WiserElectricalDevice):
 
     def turn_on(self) -> bool:
         """
-        Turn on the light at current brightness leve
+        Turn on the light at current brightness level
         return: boolean
         """
         result = self._send_command(
