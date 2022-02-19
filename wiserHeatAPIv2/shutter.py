@@ -2,7 +2,7 @@ from . import _LOGGER
 import enum
 
 from .device import _WiserElectricalDevice
-from .helpers import _WiserLiftMovementRange, _WiserTemperatureFunctions as tf
+from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
@@ -22,6 +22,37 @@ class WiserAwayActionEnum(enum.Enum):
 class _WiserShutter(_WiserElectricalDevice):
     """Class representing a Wiser Shutter device"""
 
+    class _WiserLiftMovementRange(object):
+        """ Data structure for min/max output range"""
+        def __init__(self, shutter_instance, data: dict):
+            self._shutter_instance = shutter_instance
+            self._data = data
+
+        @property
+        def open_time(self) -> int:
+            """Get open time value"""
+            if self._data:
+                return self._data.get("LiftOpenTime")
+            return None
+
+        @open_time.setter
+        def open_time(self, time: int):
+            """Set open time"""
+            return self._shutter_instance._send_command({"LiftOpenTime": time, "LiftCloseTime": self.close_time})
+
+        @property
+        def close_time(self) -> int:
+            """Get close time value"""
+            if self._data:
+                return self._data.get("LiftCloseTime")
+            return None
+
+        @close_time.setter
+        def close_time(self, time: int):
+            """Set close time"""
+            return self._shutter_instance._send_command({"LiftOpenTime": self.open_time, "LiftCloseTime": time})
+
+
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
         super().__init__(data, device_type_data)
         self._wiser_rest_controller = wiser_rest_controller
@@ -40,9 +71,9 @@ class _WiserShutter(_WiserElectricalDevice):
         return: boolen - true = success, false = failed
         """
         if device_level:
-            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.id), cmd)
+            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.shutter_id), cmd)
         else:
-            result = self._wiser_rest_controller._send_command(WISERSHUTTER.format(self.id), cmd)
+            result = self._wiser_rest_controller._send_command(WISERSHUTTER.format(self.shutter_id), cmd)
         if result:
             _LOGGER.debug(
                 "Wiser shutter - {} command successful".format(
@@ -105,8 +136,7 @@ class _WiserShutter(_WiserElectricalDevice):
     @property
     def drive_config(self) -> _WiserLiftMovementRange:
         """Get open and close time drive config"""
-        #TODO:  Add setter for drive open/close times
-        return _WiserLiftMovementRange(self._device_type_data.get("DriveConfig", None))
+        return self._WiserLiftMovementRange(self, self._device_type_data.get("DriveConfig"))
 
     @property
     def identify(self) -> bool:
@@ -127,6 +157,26 @@ class _WiserShutter(_WiserElectricalDevice):
     def is_closed(self) -> bool:
         """Get if the shutter is closed"""
         return True if self._device_type_data.get("CurrentLift", 0) == 0 else False
+
+    @property
+    def is_closing(self) -> bool:
+        """Get if shutter is moving-opening"""
+        return True if self._device_type_data.get("LiftMovement", TEXT_UNKNOWN) == 'Closing' else False
+
+    @property
+    def is_opening(self) -> bool:
+        """Get if shutter is moving-opening"""
+        return True if self._device_type_data.get("LiftMovement", TEXT_UNKNOWN) == 'Opening' else False
+
+    @property
+    def is_stopped(self) -> bool:
+        """Get if shutter is not moving"""
+        return True if self._device_type_data.get("LiftMovement", TEXT_UNKNOWN) == 'Stopped' else False
+
+    @property
+    def is_moving(self) -> bool:
+        """Get if shutter is moving"""
+        return True if self._device_type_data.get("LiftMovement", TEXT_UNKNOWN) != 'Stopped' else False
 
     @property
     def lift_movement(self) -> str:
