@@ -51,11 +51,12 @@ class _WiserSchedule(object):
             for day, sched in schedule_data.items():
                 if day.title() in (WEEKDAYS + WEEKENDS + SPECIAL_DAYS):
                     schedule_set_points = self._convert_wiser_to_yaml_day(
-                        sched, self._type
+                        sched
                     )
                     schedule_output.update({day.capitalize(): schedule_set_points})
             return schedule_output
-        except Exception:
+        except Exception as ex:
+            _LOGGER.error(f"Error converting from Wiser schedule: {ex}")
             return None
 
     def _convert_to_wiser_schedule(self, schedule_yaml_data: dict) -> dict:
@@ -68,7 +69,7 @@ class _WiserSchedule(object):
         try:
             for day, sched in schedule_yaml_data.items():
                 if day.title() in (WEEKDAYS + WEEKENDS + SPECIAL_DAYS):
-                    schedule_day = self._convert_yaml_to_wiser_day(sched, self._type)
+                    schedule_day = self._convert_yaml_to_wiser_day(sched)
                     # If using spec days, convert to one entry for each weekday
                     if day.title() in SPECIAL_DAYS:
                         if day.title() == TEXT_WEEKDAYS:
@@ -81,7 +82,7 @@ class _WiserSchedule(object):
                         schedule_output.update({day: schedule_day})
             return schedule_output
         except Exception as ex:
-            _LOGGER.error("Error converting to Wiser schedule: {}".format(ex))
+            _LOGGER.error(f"Error converting from Wiser schedule: {ex}")
             return None
 
     
