@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.21
+# Drayton Wiser Hub API v2 v0.0.22
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -119,3 +119,6 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Added commands to control lights
 - Added commands to control shutters
 - Restructured schedules to manage heating, onoff and level types and their variation
+
+### 0.0.22
+- Reverted ruamel.yaml dependancy to 0.16.12 to resolve install issues on certain versions of Alpine linux
