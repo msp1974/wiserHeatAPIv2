@@ -191,6 +191,7 @@ class _WiserSignalStrength(object):
         """Get the signal strength percent for the device"""
         return min(100, int(2 * (self.device_reception_rssi + 100))) if self.device_reception_rssi != 0 else 0
 
+
 class _WiserNetwork:
     """Data structure for network information for a Wiser Hub"""
 
@@ -451,23 +452,5 @@ class _WiserOutputRange(object):
             return self._data.get("Maximum")
         return None
 
-class _WiserLiftMovementRange(object):
-    """ Data structure for min/max output range"""
-    def __init__(self, data: dict):
-        self._data = data
-
-    @property
-    def open_time(self) -> int:
-        """Get open time value"""
-        if self._data:
-            return self._data.get("LiftOpenTime")
-        return None
-
-    @property
-    def close_time(self) -> int:
-        """Get close time value"""
-        if self._data:
-            return self._data.get("LiftCloseTime")
-        return None
 
     
