@@ -61,6 +61,7 @@ WISERSMARTVALVE = "SmartValve/{}"
 WISERROOMSTAT = "RoomStat/{}"
 WISERSMARTPLUG = "SmartPlug/{}"
 WISERHEATINGACTUATOR = "HeatingActuator/{}"
+WISERUFHCONTROLLER = "UnderFloorHeating/{}"
 WISERSHUTTER = "Shutter/{}"
 WISERLIGHT = "Light/{}"
 

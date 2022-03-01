@@ -52,6 +52,7 @@ class _WiserDevice(object):
     def signal(self) -> _WiserSignalStrength:
         """Get zwave network information"""
         return self._signal
+        
 
 class _WiserElectricalDevice(_WiserDevice):
     """Class representing a wiser electrical device"""

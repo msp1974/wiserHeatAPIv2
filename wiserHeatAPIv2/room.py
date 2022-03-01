@@ -232,6 +232,11 @@ class _WiserRoom(object):
         return self._data.get("PercentageDemand", 0)
 
     @property
+    def roomstat_id(self) -> int:
+        """Get the id of the roomstat"""
+        return self._data.get("RoomStatId", None)
+
+    @property
     def schedule(self) -> _WiserSchedule:
         """Get the schedule for the room"""
         return self._schedule
@@ -255,6 +260,16 @@ class _WiserRoom(object):
     def target_temperature_origin(self) -> str:
         """Get the origin of the target temperature setting for the room"""
         return self._data.get("SetpointOrigin", self._data.get("SetpointOrigin", TEXT_UNKNOWN))
+
+    @property
+    def underfloor_heating_id(self) -> int:
+        """Get the id of the underfloor heating controller"""
+        return self._data.get("UnderFloorHeatingId", None)
+
+    @property
+    def underfloor_heating_relay_ids(self) -> int:
+        """Get the id of the underfloor heating controller relay ids"""
+        return sorted(self._data.get("UfhRelayIds", []))
 
     @property
     def window_detection_active(self) -> bool:

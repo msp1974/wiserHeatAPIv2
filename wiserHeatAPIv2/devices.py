@@ -9,6 +9,7 @@ from .smartplug import _WiserSmartPlug, _WiserSmartPlugCollection
 from .smartvalve import _WiserSmartValve, _WiserSmartValveCollection
 from .heating_actuator import _WiserHeatingActuator, _WiserHeatingActuatorCollection
 from .shutter import _WiserShutter, _WiserShutterCollection
+from .ufh import _WiserUFHController, _WiserUFHControllerCollection
 from .light import _WiserLight, _WiserLightCollection
 
 class _WiserDeviceCollection(object):
@@ -24,6 +25,7 @@ class _WiserDeviceCollection(object):
         self._roomstats_collection = _WiserRoomStatCollection()
         self._smartplugs_collection = _WiserSmartPlugCollection()
         self._heating_actuators_colleciton = _WiserHeatingActuatorCollection()
+        self._ufh_controllers_collection = _WiserUFHControllerCollection()
         self._shutters_collection = _WiserShutterCollection()
         self._lights_collection = _WiserLightCollection()
 
@@ -102,6 +104,22 @@ class _WiserDeviceCollection(object):
                         )
                     )
 
+                # Add ufh controller object to collection
+                elif device.get("ProductType") == "UserFloorHeating":
+                    ufh_controller_info = [
+                        ufh_controller_info
+                        for ufh_controller in self._domain_data.get("UnderFloorHeating")
+                        if ufh_controller.get("id") == device.get("id")
+                    ]
+                    ufh_controller_info[0]["RoomId"] = self._get_temp_device_room_id(self._domain_data, device.get("id"))
+                    self._ufh_controllers_collection._ufh_controllers.append(
+                        _WiserUFHController(
+                            self._wiser_rest_controller,
+                            device,
+                            ufh_controller_info[0]
+                        )
+                    )
+
                 # Add shutter object to collection
                 elif device.get("ProductType") == "Shutter":
                     shutter_info = [
@@ -151,6 +169,7 @@ class _WiserDeviceCollection(object):
             room_device_list.extend(room.get("SmartValveIds",[]))
             room_device_list.extend(room.get("HeatingActuatorIds", []))
             room_device_list.append(room.get("RoomStatId"))
+            room_device_list.append(room.get("UnderFloorHeatingId"))
             if device_id in room_device_list:
                 return room.get("id")
         return 0
@@ -164,6 +183,7 @@ class _WiserDeviceCollection(object):
             + list(self._roomstats_collection.all) 
             + list(self._smartplugs_collection.all)
             + list(self._heating_actuators_colleciton.all)
+            + list(self._ufh_controllers_collection.all)
             + list(self._shutters_collection.all)
             + list(self._lights_collection.all)
         )
@@ -195,6 +215,10 @@ class _WiserDeviceCollection(object):
     @property
     def smartvalves(self):
         return self._smartvalves_collection
+
+    @property
+    def ufh_controllers(self):
+        return self._ufh_controllers_collection
 
     def get_by_id(self, id: int):
         """
