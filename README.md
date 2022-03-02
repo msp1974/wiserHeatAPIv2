@@ -123,3 +123,4 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 
 ### 0.0.24
 - Added initial support for UFH controller
+- Fix to allow reported current temp below 5C
