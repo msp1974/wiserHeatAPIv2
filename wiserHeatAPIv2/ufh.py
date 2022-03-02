@@ -111,6 +111,10 @@ class _WiserUFHController(_WiserDevice):
         return self._device_type_data.get("OutputType", TEXT_UNKNOWN)
 
     @property
+    def relays(self) -> list:
+        return self._relays
+
+    @property
     def room_id(self) -> int:
         """Get heating actuator room id"""
         return self._device_type_data.get("RoomId", 0)
