@@ -93,14 +93,18 @@ class _WiserUFHController(_WiserDevice):
     @property
     def max_floor_temperature(self) -> int:
         """Get the max heat floor temperature"""
-        return self._device_type_data("MaxHeatFloorTemperature", TEMP_MAXIMUM)
+        return self._device_type_data.get("MaxHeatFloorTemperature", TEMP_MAXIMUM)
 
     @property
     def min_floor_temperature(self) -> int:
         """Get the min heat floor temperature"""
-        return self._device_type_data("MinHeatFloorTemperature", TEMP_OFF)
+        return self._device_type_data.get("MinHeatFloorTemperature", TEMP_OFF)
 
-    
+    @property
+    def name(self) -> str:
+        """Get name of UFH controller"""
+        return self._device_type_data.get("Name", TEXT_UNKNOWN)
+        
     @property
     def output_type(self) -> str:
         """Get output type"""
