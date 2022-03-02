@@ -96,7 +96,7 @@ class _WiserRoom(object):
     @property
     def current_temperature(self) -> float:
         """Get current temperature of the room"""
-        return tf._from_wiser_temp(self._data.get("CalculatedTemperature", TEMP_MINIMUM))
+        return tf._from_wiser_temp(self._data.get("CalculatedTemperature", TEMP_MINIMUM), "current")
 
     @property
     def current_humidity(self) -> int:

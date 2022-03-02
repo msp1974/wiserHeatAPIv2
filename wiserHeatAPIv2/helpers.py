@@ -36,7 +36,7 @@ class _WiserTemperatureFunctions(object):
         return temp
 
     @staticmethod
-    def _from_wiser_temp(temp: int, type: str = "heating", units:WiserUnitsEnum = WiserUnitsEnum.metric) -> float:
+    def _from_wiser_temp(temp: int, type: str = "set_heating", units:WiserUnitsEnum = WiserUnitsEnum.metric) -> float:
         """
         Converts from wiser hub format to degrees C
         param temp: The wiser temperature to convert
@@ -56,7 +56,7 @@ class _WiserTemperatureFunctions(object):
         return None
 
     @staticmethod
-    def _validate_temperature(temp: float, type: str = "heating") -> float:
+    def _validate_temperature(temp: float, type: str = "set_heating") -> float:
         """
         Validates temperature value is in range of Wiser Hub allowed values
         Sets to min or max temp if value exceeds limits
@@ -73,9 +73,15 @@ class _WiserTemperatureFunctions(object):
             if temp > MAX_BOOST_INCREASE:
                 return MAX_BOOST_INCREASE
             return temp
+
+        # Accomodate reported current temps
+        if type == "current":
+            if temp < TEMP_OFF:
+                return TEMP_MINIMUM
+            return temp
         
         #Accomodate heating temps
-        if type == "heating":
+        if type == "set_heating":
             if temp >= TEMP_ERROR:
                 return TEMP_MINIMUM
             elif temp > TEMP_MAXIMUM:

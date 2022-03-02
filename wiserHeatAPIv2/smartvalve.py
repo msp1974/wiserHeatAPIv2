@@ -60,7 +60,7 @@ class _WiserSmartValve(_WiserDevice):
     @property
     def current_temperature(self) -> float:
         """Get the current temperature measured by the smart valve"""
-        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature"))
+        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature"), "current")
 
     @property
     def identify(self) -> bool:

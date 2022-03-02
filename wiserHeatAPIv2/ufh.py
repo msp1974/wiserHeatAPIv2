@@ -53,7 +53,7 @@ class _WiserUFHController(_WiserDevice):
     @property
     def current_temperature(self) -> float:
         """Get the current temperature measured by the smart valve"""
-        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature"))
+        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature"), "current")
 
     @property
     def device_lock_enabled(self) -> bool:
@@ -104,7 +104,7 @@ class _WiserUFHController(_WiserDevice):
     def name(self) -> str:
         """Get name of UFH controller"""
         return self._device_type_data.get("Name", TEXT_UNKNOWN)
-        
+
     @property
     def output_type(self) -> str:
         """Get output type"""
