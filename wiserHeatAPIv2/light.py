@@ -161,6 +161,16 @@ class _WiserLight(_WiserElectricalDevice):
         return self._device_type_data.get("id", 0)
 
     @property
+    def manual_level(self) -> int:
+        """Get manual level of light"""
+        return self._device_type_data.get("ManualLevel", 0)
+
+    @property
+    def override_level(self) -> int:
+        """Get override level of light"""
+        return self._device_type_data.get("OverrideLevel", 0)      
+
+    @property
     def mode(self) -> str:
         """Get or set the current mode of the light (Manual or Auto)"""
         return WiserLightModeEnum[self._mode.lower()].value
@@ -187,7 +197,7 @@ class _WiserLight(_WiserElectricalDevice):
     def output_range(self) -> _WiserOutputRange:
         """Get output range min/max."""
         #TODO: Add setter for min max values
-        return _WiserOutputRange(self._device_type_data.get("OutputRange", None))
+        return self._WiserOutputRange(self._device_type_data.get("OutputRange", None))
 
     @property
     def room_id(self) -> int:
@@ -203,6 +213,11 @@ class _WiserLight(_WiserElectricalDevice):
     def schedule_id(self) -> int:
         """Get the schedule id for the light"""
         return self._device_type_data.get("ScheduleId")
+
+    @property
+    def scheduled_percentage(self) -> int:
+        """Get the scheduled percentage for the light"""
+        return self._data.get("ScheduledPercentage", 0)
 
     @property
     def target_state(self) -> int:
