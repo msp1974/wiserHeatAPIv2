@@ -129,7 +129,7 @@ class _WiserShutter(_WiserElectricalDevice):
     def current_lift(self, percentage: int):
         """ Open shutter to defined level """
         if percentage >= 0 and percentage <= 100:
-            self._send_command({"Action": "LiftTo", "Percentage": percentage})
+            self._send_command({"RequestAction":{"Action": "LiftTo", "Percentage": percentage}})
         else:
             raise ValueError(f"Shutter percentage must be between 0 and 100")
 
