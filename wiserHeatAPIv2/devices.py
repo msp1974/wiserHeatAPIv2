@@ -105,9 +105,9 @@ class _WiserDeviceCollection(object):
                     )
 
                 # Add ufh controller object to collection
-                elif device.get("ProductType") == "UserFloorHeating":
+                elif device.get("ProductType") == "UnderFloorHeating":
                     ufh_controller_info = [
-                        ufh_controller_info
+                        ufh_controller
                         for ufh_controller in self._domain_data.get("UnderFloorHeating")
                         if ufh_controller.get("id") == device.get("id")
                     ]

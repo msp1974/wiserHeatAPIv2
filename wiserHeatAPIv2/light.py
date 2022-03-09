@@ -2,7 +2,6 @@ from . import _LOGGER
 import enum
 
 from .device import _WiserElectricalDevice
-from .helpers import _WiserOutputRange
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
@@ -21,6 +20,25 @@ class WiserAwayActionEnum(enum.Enum):
 
 class _WiserLight(_WiserElectricalDevice):
     """Class representing a Wiser Light device"""
+
+    class _WiserOutputRange(object):
+        """ Data structure for min/max output range"""
+        def __init__(self, data: dict):
+            self._data = data
+
+        @property
+        def minimum(self) -> int:
+            """Get min value"""
+            if self._data:
+                return self._data.get("Minimum")
+            return None
+
+        @property
+        def maximum(self) -> int:
+            """Get max value"""
+            if self._data:
+                return self._data.get("Maximum")
+            return None
 
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
         super().__init__(data, device_type_data)
@@ -143,6 +161,16 @@ class _WiserLight(_WiserElectricalDevice):
         return self._device_type_data.get("id", 0)
 
     @property
+    def manual_level(self) -> int:
+        """Get manual level of light"""
+        return self._device_type_data.get("ManualLevel", 0)
+
+    @property
+    def override_level(self) -> int:
+        """Get override level of light"""
+        return self._device_type_data.get("OverrideLevel", 0)      
+
+    @property
     def mode(self) -> str:
         """Get or set the current mode of the light (Manual or Auto)"""
         return WiserLightModeEnum[self._mode.lower()].value
@@ -169,7 +197,7 @@ class _WiserLight(_WiserElectricalDevice):
     def output_range(self) -> _WiserOutputRange:
         """Get output range min/max."""
         #TODO: Add setter for min max values
-        return _WiserOutputRange(self._device_type_data.get("OutputRange", None))
+        return self._WiserOutputRange(self._device_type_data.get("OutputRange", None))
 
     @property
     def room_id(self) -> int:
@@ -184,7 +212,12 @@ class _WiserLight(_WiserElectricalDevice):
     @property
     def schedule_id(self) -> int:
         """Get the schedule id for the light"""
-        return self._data.get("ScheduleId")
+        return self._device_type_data.get("ScheduleId")
+
+    @property
+    def scheduled_percentage(self) -> int:
+        """Get the scheduled percentage for the light"""
+        return self._data.get("ScheduledPercentage", 0)
 
     @property
     def target_state(self) -> int:

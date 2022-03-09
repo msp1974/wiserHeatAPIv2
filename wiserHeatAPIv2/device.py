@@ -34,6 +34,16 @@ class _WiserDevice(object):
         return self._data.get("NodeId", 0)
 
     @property
+    def product_identifier(self) -> str:
+        """Get product identifier of device"""
+        return self._data.get("ProductIdentifier", TEXT_UNKNOWN)
+
+    @property
+    def product_model(self) -> str:
+        """Get product model of device"""
+        return self._data.get("ProductModel", TEXT_UNKNOWN)
+
+    @property
     def parent_node_id(self) -> int:
         """Get zigbee node id of device this device is connected to"""
         return self._data.get("ParentNodeId", 0)

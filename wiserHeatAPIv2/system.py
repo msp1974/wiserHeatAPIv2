@@ -142,7 +142,7 @@ class _WiserSystem(object):
         return self._system_data.get("BrandName")
 
     @property
-    def capabilities(self) -> list:
+    def capabilities(self) -> _WiserHubCapabilitiesInfo:
         """Get capability info"""
         return self._capability_data
 

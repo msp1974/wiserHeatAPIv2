@@ -58,7 +58,7 @@ class _WiserRoomStat(_WiserDevice):
     @property
     def current_temperature(self) -> float:
         """Get the current temperature measured by the room stat"""
-        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature", 0))
+        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature", 0), "current")
 
     @property
     def device_lock_enabled(self) -> bool:

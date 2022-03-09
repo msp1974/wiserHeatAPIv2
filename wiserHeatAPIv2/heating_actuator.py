@@ -45,7 +45,7 @@ class _WiserHeatingActuator(_WiserDevice):
     @property
     def current_temperature(self) -> float:
         """Get the current temperature measured by the smart valve"""
-        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature", TEMP_OFF))
+        return tf._from_wiser_temp(self._device_type_data.get("MeasuredTemperature", TEMP_OFF), "current")
 
     @property
     def delivered_power(self) -> int:
