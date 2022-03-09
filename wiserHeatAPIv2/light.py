@@ -2,7 +2,6 @@ from . import _LOGGER
 import enum
 
 from .device import _WiserElectricalDevice
-from .helpers import _WiserOutputRange
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
@@ -21,6 +20,25 @@ class WiserAwayActionEnum(enum.Enum):
 
 class _WiserLight(_WiserElectricalDevice):
     """Class representing a Wiser Light device"""
+
+    class _WiserOutputRange(object):
+        """ Data structure for min/max output range"""
+        def __init__(self, data: dict):
+            self._data = data
+
+        @property
+        def minimum(self) -> int:
+            """Get min value"""
+            if self._data:
+                return self._data.get("Minimum")
+            return None
+
+        @property
+        def maximum(self) -> int:
+            """Get max value"""
+            if self._data:
+                return self._data.get("Maximum")
+            return None
 
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
         super().__init__(data, device_type_data)

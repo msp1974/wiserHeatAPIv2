@@ -473,24 +473,5 @@ class _WiserHubCapabilitiesInfo:
         return self._data.get("LoadController", False)
     
 
-class _WiserOutputRange(object):
-    """ Data structure for min/max output range"""
-    def __init__(self, data: dict):
-        self._data = data
-
-    @property
-    def min(self) -> int:
-        """Get min value"""
-        if self._data:
-            return self._data.get("Minimum")
-        return None
-
-    @property
-    def max(self) -> int:
-        """Get max value"""
-        if self._data:
-            return self._data.get("Maximum")
-        return None
-
 
     
