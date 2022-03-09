@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.24
+# Drayton Wiser Hub API v2 v0.0.25
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -124,3 +124,9 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 ### 0.0.24
 - Added initial support for UFH controller
 - Fix to allow reported current temp below 5C
+
+### 0.0.25
+- Fix for schedule id returning None
+- Rename output_range to minimum and maximum from min/max
+- Fix for command issue for current_lift in shutter.py
+
