@@ -218,13 +218,13 @@ class _WiserShutter(_WiserElectricalDevice):
 
     @property
     def schedule(self):
-        """Get the schedule of the smart plug"""
+        """Get the schedule of the shutter"""
         return self._schedule
 
     @property
     def schedule_id(self) -> int:
         """Get the schedule id for the room"""
-        return self._data.get("ScheduleId")
+        return self._device_type_data.get("ScheduleId")
 
     @property
     def scheduled_lift(self) -> str:
