@@ -129,7 +129,7 @@ class _WiserRoom(object):
     @property
     def displayed_setpoint(self) -> float:
         """Get room heating displayed setpoint"""
-        return tf._from_wiser_temp(self._data.get("DisplayedSetpoint", TEMP_MINIMUM), "current")
+        return tf._from_wiser_temp(self._data.get("DisplayedSetPoint", TEMP_MINIMUM), "current")
 
     @property
     def heating_actuator_ids(self) -> list:
