@@ -89,6 +89,16 @@ class _WiserRoom(object):
             return 0
 
     @property
+    def comfort_mode_score(self) -> int:
+        """Get room heating comfort mode score"""
+        return self._data.get("ComfortModeScore", 0)
+
+    @property
+    def control_direction(self) -> str:
+        """Get room heating control direction Heat or Cool"""
+        return self._data.get("ControlDirection", TEXT_UNKNOWN)
+
+    @property
     def current_target_temperature(self) -> float:
         """Get current target temperature for the room"""
         return tf._from_wiser_temp(self._data.get("CurrentSetPoint", TEMP_MINIMUM))
@@ -107,9 +117,19 @@ class _WiserRoom(object):
         return None
 
     @property
+    def demand_type(self) -> str:
+        """Get room heating control direction"""
+        return self._data.get("DemandType", TEXT_UNKNOWN)
+
+    @property
     def devices(self) -> list:
         """Get devices associated with the room"""
         return self._devices
+
+    @property
+    def displayed_setpoint(self) -> float:
+        """Get room heating displayed setpoint"""
+        return tf._from_wiser_temp(self._data.get("DisplayedSetpoint", TEMP_MINIMUM), "current")
 
     @property
     def heating_actuator_ids(self) -> list:
@@ -120,6 +140,11 @@ class _WiserRoom(object):
     def heating_rate(self) -> str:
         """Get room heating rate"""
         return self._data.get("HeatingRate", TEXT_UNKNOWN)
+
+    @property
+    def heating_type(self) -> str:
+        """Get room heating type"""
+        return self._data.get("HeatingType", TEXT_UNKNOWN)
 
     @property
     def id(self) -> int:
