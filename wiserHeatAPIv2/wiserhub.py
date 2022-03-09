@@ -66,7 +66,7 @@ class WiserAPI(object):
         self._wiser_api_connection.host = host
         self._wiser_api_connection.secret = secret
         self._wiser_api_connection.units = units
-        
+
         # Data stores for exposed properties
         self._devices = None
         self._hotwater = None
@@ -185,6 +185,10 @@ class WiserAPI(object):
     @units.setter
     def units(self, units: WiserUnitsEnum):
         self._wiser_api_connection.units = units
+
+    @property
+    def version(self):
+        return __VERSION__
 
     def output_raw_hub_data(self, data_class: str, filename: str, file_path: str) -> bool:
         """Output raw hub data to json file"""
