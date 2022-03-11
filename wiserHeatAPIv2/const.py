@@ -30,12 +30,14 @@ TEXT_CLOSE = "Close"
 TEXT_DEGREESC = "DegreesC"
 TEXT_HEATING = "Heating"
 TEXT_LEVEL = "Level"
+TEXT_LIGHTING = "Lighting"
 TEXT_MANUAL = "Manual"
 TEXT_NO_CHANGE = "NoChange"
 TEXT_OFF = "Off"
 TEXT_ON = "On"
 TEXT_ONOFF = "OnOff"
 TEXT_OPEN = "Open"
+TEXT_SHUTTERS = "Shutters"
 TEXT_STATE = "State"
 TEXT_TEMP = "Temp"
 TEXT_TIME = "Time"
@@ -47,6 +49,7 @@ TEXT_WEEKENDS = "Weekends"
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 WEEKENDS = ["Saturday", "Sunday"]
 SPECIAL_DAYS = [TEXT_WEEKDAYS, TEXT_WEEKENDS]
+SPECIAL_TIMES = {"Sunrise":3000, "Sunset": 4000}
 
 # Wiser Hub Rest Api URL Constants
 WISERHUBURL = "http://{}/data/v2/"
