@@ -162,6 +162,11 @@ class _WiserSmartPlug(_WiserDevice):
         return self._schedule
 
     @property
+    def schedule_id(self):
+        """Get the schedule_id of the smart plug"""
+        return self._device_type_data.get("ScheduleId", 0)
+
+    @property
     def scheduled_state(self) -> str:
         """Get the current scheduled state of the smart plug"""
         return self._device_type_data.get("ScheduledState", TEXT_UNKNOWN)
