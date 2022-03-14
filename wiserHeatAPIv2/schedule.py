@@ -75,7 +75,6 @@ class _WiserSchedule(object):
             return schedule_output
         except Exception as ex:
             _LOGGER.error(f"Error converting from Wiser schedule: {ex}")
-            raise
             return None
 
     def _convert_to_wiser_schedule(self, schedule_yaml_data: dict) -> dict:
@@ -126,6 +125,7 @@ class _WiserSchedule(object):
             return result
         except Exception as ex:
             _LOGGER.debug(ex)
+            raise
 
     @property
     def current_setting(self) -> str:
