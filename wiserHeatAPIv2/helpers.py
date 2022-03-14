@@ -20,7 +20,7 @@ class _WiserTemperatureFunctions(object):
     # Support Functions
     # -----------------------------------------------------------
     @staticmethod
-    def _to_wiser_temp(temp: float, type: str = "heating", units:WiserUnitsEnum = WiserUnitsEnum.metric) -> int:
+    def _to_wiser_temp(temp: float, type: str = "set_heating", units:WiserUnitsEnum = WiserUnitsEnum.metric) -> int:
         """
         Converts from degrees C to wiser hub format
         param temp: The temperature to convert

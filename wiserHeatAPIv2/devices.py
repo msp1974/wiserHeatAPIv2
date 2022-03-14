@@ -4,7 +4,7 @@ from .const import TEXT_UNKNOWN
 
 from .rest_controller import _WiserRestController
 from .roomstat import _WiserRoomStat, _WiserRoomStatCollection
-from .schedule import _WiserScheduleCollection, WiserScheduleType
+from .schedule import _WiserScheduleCollection, WiserScheduleTypeEnum
 from .smartplug import _WiserSmartPlug, _WiserSmartPlugCollection
 from .smartvalve import _WiserSmartValve, _WiserSmartValveCollection
 from .heating_actuator import _WiserHeatingActuator, _WiserHeatingActuatorCollection
@@ -76,7 +76,7 @@ class _WiserDeviceCollection(object):
                     ]
                     smartplug_schedule = [
                         schedule
-                        for schedule in self._schedules.get_by_type(WiserScheduleType.onoff)
+                        for schedule in self._schedules.get_by_type(WiserScheduleTypeEnum.onoff)
                         if schedule.id == smartplug_info[0].get("ScheduleId")
                     ]
                     self._smartplugs_collection._smartplugs.append(
@@ -129,7 +129,7 @@ class _WiserDeviceCollection(object):
                     ]
                     shutter_schedule = [
                         schedule
-                        for schedule in self._schedules.get_by_type(WiserScheduleType.level)
+                        for schedule in self._schedules.get_by_type(WiserScheduleTypeEnum.level)
                         if schedule.id == shutter_info[0].get("ScheduleId", 0)
                     ]
                     self._shutters_collection._shutters.append(
@@ -150,7 +150,7 @@ class _WiserDeviceCollection(object):
                     ]
                     light_schedule = [
                         schedule
-                        for schedule in self._schedules.get_by_type(WiserScheduleType.level)
+                        for schedule in self._schedules.get_by_type(WiserScheduleTypeEnum.level)
                         if schedule.id == light_info[0].get("ScheduleId")
                     ]
                     self._lights_collection._lights.append(

@@ -1,23 +1,26 @@
+from concurrent.futures.process import _threads_wakeups
 import enum
 import inspect
 import json
+import time
 from datetime import datetime
 
 from ruamel.yaml import YAML
 
 from . import _LOGGER
-from .const import (SPECIAL_DAYS, TEMP_MINIMUM, TEMP_OFF, TEXT_DEGREESC,
-                    TEXT_HEATING, TEXT_LEVEL, TEXT_OFF, TEXT_ON, TEXT_ONOFF, TEXT_STATE,
+from .const import (SPECIAL_DAYS, SPECIAL_TIMES, TEMP_MINIMUM, TEMP_OFF, TEXT_DEGREESC,
+                    TEXT_HEATING, TEXT_LEVEL, TEXT_LIGHTING, TEXT_OFF, TEXT_ON, TEXT_ONOFF, TEXT_SHUTTERS, TEXT_STATE,
                     TEXT_TEMP, TEXT_TIME, TEXT_UNKNOWN, TEXT_WEEKDAYS,
                     TEXT_WEEKENDS, WEEKDAYS, WEEKENDS, WISERHUBSCHEDULES)
 from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 
-class WiserScheduleType(enum.Enum):
+class WiserScheduleTypeEnum(enum.Enum):
     heating = TEXT_HEATING
     onoff = TEXT_ONOFF
     level = TEXT_LEVEL
-
+    lighting = TEXT_LIGHTING
+    shutters = TEXT_SHUTTERS
 
 class _WiserSchedule(object):
     """Class representing a wiser Schedule"""
@@ -26,6 +29,21 @@ class _WiserSchedule(object):
         self._wiser_rest_controller = wiser_rest_controller
         self._type = schedule_type
         self._schedule_data = schedule_data
+
+    def _validate_schedule_type(self, schedule_data: dict) -> bool:
+        return True if schedule_data.get("Type", None) == self.schedule_type else False
+
+    def _is_valid_time(self, time_value: str) -> bool:
+        try:
+            time.strptime(time_value, "%H:%M")
+            return True
+        except ValueError:
+            return False
+
+    def _ensure_type(self, schedule_data: dict) -> dict:
+        if not schedule_data.get("Type"):
+            schedule_data["Type"] = self.schedule_type
+        return schedule_data
 
     def _remove_schedule_elements(self, schedule_data: dict) -> dict:
         remove_list = ["id", "CurrentSetpoint", "CurrentState", "CurrentLevel", "Name", "Next", "Type"]
@@ -43,8 +61,8 @@ class _WiserSchedule(object):
         # Create dict to take converted data
         schedule_output = {
             "Name": self.name,
-            "Description": self._type + " schedule for " + self.name,
-            "Type": self._type,
+            "Description": self.schedule_type + " schedule for " + self.name,
+            "Type": self.schedule_type,
         }
         # Iterate through each day
         try:
@@ -107,15 +125,16 @@ class _WiserSchedule(object):
             return result
         except Exception as ex:
             _LOGGER.debug(ex)
+            raise
 
     @property
     def current_setting(self) -> str:
         """Get current scheduled setting (temp or state)"""
-        if self._type == WiserScheduleType.heating.value:
+        if self._type == WiserScheduleTypeEnum.heating.value:
             return tf._from_wiser_temp(self._schedule_data.get("CurrentSetpoint", TEMP_MINIMUM))
-        if self._type == WiserScheduleType.onoff.value:
+        if self._type == WiserScheduleTypeEnum.onoff.value:
             return self._schedule_data.get("CurrentState", TEXT_UNKNOWN)
-        if self._type == WiserScheduleType.level.value:
+        if self._type == WiserScheduleTypeEnum.level.value:
             return self._schedule_data.get("CurrentLevel", TEXT_UNKNOWN)
 
 
@@ -147,7 +166,9 @@ class _WiserSchedule(object):
 
     @property
     def schedule_type(self) -> str:
-        """Get schedule type (heating or on/off)"""
+        """Get schedule type (heating, on/off or level (lighting, shutters))"""
+        if self._type == TEXT_LEVEL:
+            return self._schedule_data.get("Type", TEXT_UNKNOWN)
         return self._type
 
     def copy_schedule(self, to_id: int) -> bool:
@@ -156,7 +177,12 @@ class _WiserSchedule(object):
         param toId: id of schedule to copy to
         return: boolen - true = successfully set, false = failed to set
         """
-        return self._send_schedule(self._remove_schedule_elements(self._schedule_data), to_id)
+        try:
+            self._send_schedule(self._remove_schedule_elements(self._schedule_data.copy()), to_id)
+            return True
+        except Exception as ex:
+            _LOGGER.error(f"Error copying schedule: {ex}")
+            return False
 
     def save_schedule_to_file(self, schedule_file: str) -> bool:
         """
@@ -166,7 +192,7 @@ class _WiserSchedule(object):
         """
         try:
             with open(schedule_file, "w") as file:
-                json.dump(self._schedule_data, file, indent=4)
+                json.dump(self._ensure_type(self._schedule_data), file, indent=4)
             return True
         except Exception as ex:
             _LOGGER.error(f"Error saving schedule to file: {ex}")
@@ -193,7 +219,13 @@ class _WiserSchedule(object):
         param scheduleData: json data respresenting a schedule
         return: boolen - true = successfully set, false = failed to set
         """
-        return self._send_schedule(self._remove_schedule_elements(schedule_data))
+        try:
+            self._send_schedule(self._remove_schedule_elements(schedule_data))  
+            return True
+        except Exception as ex:
+            _LOGGER.error(f"Error copying schedule: {ex}")
+            return False
+              
 
     def set_schedule_from_file(self, schedule_file: str) -> bool:
         """
@@ -203,8 +235,12 @@ class _WiserSchedule(object):
         """
         try:
             with open(schedule_file, "r") as file:
-                self.set_schedule(self._remove_schedule_elements(json.load(file)))
-                return True
+                schedule_data = json.load(file)
+                if self._validate_schedule_type(schedule_data):
+                    self.set_schedule(self._remove_schedule_elements(schedule_data))
+                    return True
+                else:
+                    _LOGGER.error(f"{schedule_data.get('Type', TEXT_UNKNOWN)} is an incorrect schedule type for this device.  It should be a {self.schedule_type} schedule.")
         except Exception as ex:
             _LOGGER.error(f"Error setting schedule from file: {ex}")
             return False
@@ -218,10 +254,13 @@ class _WiserSchedule(object):
         try:
             yaml = YAML()
             with open(schedule_yaml_file, "r") as file:
-                y = yaml.load(file)
-                s = self._convert_to_wiser_schedule(y)
-                self.set_schedule(s)
-                return True
+                schedule_data = yaml.load(file)
+                if self._validate_schedule_type(schedule_data):
+                    schedule = self._convert_to_wiser_schedule(schedule_data)
+                    self.set_schedule(schedule)
+                    return True
+                else:
+                    _LOGGER.error(f"This is an incorrect schedule type for this device.  It should be a {self.schedule_type} schedule.")
         except Exception as ex:
             _LOGGER.error(f"Error setting schedule from yaml file: {ex}")
             return False
@@ -309,7 +348,10 @@ class _WiserOnOffSchedule(_WiserSchedule):
 
         for entry in day_schedule:
             try:
-                time = int(str(entry.get("Time")).replace(":", ""))
+                if self._is_valid_time(entry.get("Time")):
+                    time = int(str(entry.get("Time")).replace(":", ""))
+                else:
+                    time = 0
                 if entry.get("State").title() == TEXT_OFF:
                     time = 0 - int(time)
             except Exception as ex:
@@ -337,16 +379,26 @@ class _WiserLevelSchedule(_WiserSchedule):
         """
         schedule_set_points = []
         for i in range(len(day_schedule[TEXT_TIME])):
-            schedule_set_points.append(
-                {
-                    TEXT_TIME: (
-                        datetime.strptime(
-                            format(day_schedule[TEXT_TIME][i], "04d"), "%H%M"
-                        )
-                    ).strftime("%H:%M"),
-                    TEXT_LEVEL: day_schedule[TEXT_LEVEL][i],
-                }
-            )
+            if day_schedule[TEXT_TIME][i] in SPECIAL_TIMES.values():
+                schedule_set_points.append(
+                    {
+                        TEXT_TIME: (
+                                [time for time, name in SPECIAL_TIMES.items() if name == day_schedule[TEXT_TIME][i]][0]
+                            ),
+                        TEXT_LEVEL: day_schedule[TEXT_LEVEL][i],
+                    }
+                )
+            else:
+                schedule_set_points.append(
+                    {
+                        TEXT_TIME: (
+                            datetime.strptime(
+                                format(day_schedule[TEXT_TIME][i], "04d"), "%H%M"
+                            )
+                        ).strftime("%H:%M"),
+                        TEXT_LEVEL: day_schedule[TEXT_LEVEL][i],
+                    }
+                )
         return schedule_set_points
 
     def _convert_yaml_to_wiser_day(self, day_schedule) -> list:
@@ -357,11 +409,16 @@ class _WiserLevelSchedule(_WiserSchedule):
         """
         times = []
         levels = []
-
-        for item in day_schedule:
-            for key, value in item.items():
+        for entry in day_schedule:
+            for key, value in entry.items():
                 if key.title() == TEXT_TIME:
-                    time = str(value).replace(":", "")
+                    if value.title() in SPECIAL_TIMES.keys():
+                        time = SPECIAL_TIMES[value.title()]
+                    else:
+                        if self._is_valid_time(value):
+                            time = str(value).replace(":", "")
+                        else:
+                            time = "0"
                     times.append(time)
                 if key.title() == TEXT_LEVEL:
                     levels.append(value)
@@ -412,11 +469,11 @@ class _WiserScheduleCollection(object):
     def _build(self, schedule_data):
         for schedule_type in schedule_data:
             for schedule in schedule_data.get(schedule_type):
-                if schedule_type == WiserScheduleType.heating.value:
+                if schedule_type == WiserScheduleTypeEnum.heating.value:
                     self._heating_schedules.append(_WiserHeatingSchedule(self._wiser_rest_controller, schedule_type, schedule))
-                if schedule_type == WiserScheduleType.onoff.value:
+                if schedule_type == WiserScheduleTypeEnum.onoff.value:
                     self._onoff_schedules.append(_WiserOnOffSchedule(self._wiser_rest_controller, schedule_type, schedule))
-                if schedule_type == WiserScheduleType.level.value:
+                if schedule_type == WiserScheduleTypeEnum.level.value:
                     self._level_schedules.append(_WiserLevelSchedule(self._wiser_rest_controller, schedule_type, schedule))
 
     @property
@@ -431,18 +488,20 @@ class _WiserScheduleCollection(object):
     def count(self) -> int:
         return len(self.all)
 
-    def get_by_id(self, schedule_type: WiserScheduleType, id: int) -> _WiserSchedule:
+    def get_by_id(self, schedule_type: WiserScheduleTypeEnum, id: int) -> _WiserSchedule:
         """
         Gets a schedule object from the schedules id
         param id: id of schedule
         return: _WiserSchedule object
         """
         try:
+            if schedule_type == WiserScheduleTypeEnum.level:
+                return [schedule for schedule in self.all if schedule._type == schedule_type.value and schedule.id == id][0]
             return [schedule for schedule in self.all if schedule.schedule_type == schedule_type.value and schedule.id == id][0]
         except IndexError:
             return None
 
-    def get_by_name(self, schedule_type: WiserScheduleType, name: str) -> _WiserSchedule:
+    def get_by_name(self, schedule_type: WiserScheduleTypeEnum, name: str) -> _WiserSchedule:
         """
         Gets a schedule object from the schedules name
         (room name, smart plug name, hotwater)
@@ -450,15 +509,43 @@ class _WiserScheduleCollection(object):
         return: _WiserSchedule object
         """
         try:
+            if schedule_type == WiserScheduleTypeEnum.level:
+                return [schedule for schedule in self.all if schedule._type == schedule_type.value and schedule.name == name][0]
             return [schedule for schedule in self.all if schedule.schedule_type == schedule_type and schedule.name == name][0]
         except IndexError:
             return None
 
-    def get_by_type(self, schedule_type: WiserScheduleType) -> list:
-        if schedule_type == WiserScheduleType.heating:
+    def get_by_type(self, schedule_type: WiserScheduleTypeEnum) -> list:
+        """
+        Gets a list of schedules that match the schedule type
+        param schedule_type: type of schedule mathcing WiserScheduleTypeEnum
+        return: list of _WiserSchedule objects
+        """
+        if schedule_type == WiserScheduleTypeEnum.heating:
             return self._heating_schedules
-        if schedule_type == WiserScheduleType.onoff:
+        if schedule_type == WiserScheduleTypeEnum.onoff:
             return self._onoff_schedules
-        if schedule_type == WiserScheduleType.level:
+        if schedule_type == WiserScheduleTypeEnum.level:
             return self._level_schedules
-        return None
+        
+        return [schedule for schedule in self.all if schedule.schedule_type == schedule_type]
+
+    def copy_schedule(self, schedule_type: WiserScheduleTypeEnum, from_id: int, to_id:int) -> bool:
+        """
+        Copy schedule of same type between schedule Ids
+        param from_id: id of the schedule to copy
+        param to_id: id of the schedule to copy to
+        return: True if succeeded, false if failed
+        """
+        from_schedule = self.get_by_id(schedule_type, from_id)
+        to_schedule = self.get_by_id(schedule_type, to_id)
+
+        if from_schedule and to_schedule:
+            if from_schedule.schedule_type == to_schedule.schedule_type:
+                return from_schedule.copy_schedule(to_id)
+            else:
+                _LOGGER.error(f"You cannot copy from {from_schedule.schedule_type} to {to_schedule.schedule_type} schedules.  They must be of the same type")
+        else:
+            _LOGGER.error(f"Invalid schedule id for {'from_id' if not from_schedule else 'to_id'}")
+        return False
+

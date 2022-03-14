@@ -2,7 +2,7 @@
 """
 # Wiser API Version 2
 
-Tested in WiserHub version 3.8.7-96f260a486
+Tested in WiserHub version 3.8.8
 
 angelosantagata@gmail.com
 msparker@sky.com
@@ -48,7 +48,7 @@ from .hot_water import _WiserHotwater
 from .moments import _WiserMomentCollection
 from .rest_controller import _WiserRestController, _WiserConnection
 from .room import _WiserRoomCollection
-from .schedule import _WiserScheduleCollection, WiserScheduleType
+from .schedule import _WiserScheduleCollection, WiserScheduleTypeEnum
 from .system import _WiserSystem
 
 
@@ -66,7 +66,7 @@ class WiserAPI(object):
         self._wiser_api_connection.host = host
         self._wiser_api_connection.secret = secret
         self._wiser_api_connection.units = units
-        
+
         # Data stores for exposed properties
         self._devices = None
         self._hotwater = None
@@ -113,11 +113,11 @@ class WiserAPI(object):
 
             # Rooms Collection
             room_data = _domain_data.get("Room", [])
-            self._rooms = _WiserRoomCollection(self._wiser_rest_controller, room_data, self._schedules.get_by_type(WiserScheduleType.heating), self._devices)
+            self._rooms = _WiserRoomCollection(self._wiser_rest_controller, room_data, self._schedules.get_by_type(WiserScheduleTypeEnum.heating), self._devices)
 
             # Hot Water
             if _domain_data.get("HotWater"):
-                schedule = self._schedules.get_by_id(WiserScheduleType.onoff, _domain_data.get("HotWater")[0].get("ScheduleId", 0))
+                schedule = self._schedules.get_by_id(WiserScheduleTypeEnum.onoff, _domain_data.get("HotWater")[0].get("ScheduleId", 0))
                 self._hotwater = _WiserHotwater(
                     self._wiser_rest_controller,
                     _domain_data.get("HotWater", {})[0],
@@ -185,6 +185,10 @@ class WiserAPI(object):
     @units.setter
     def units(self, units: WiserUnitsEnum):
         self._wiser_api_connection.units = units
+
+    @property
+    def version(self):
+        return __VERSION__
 
     def output_raw_hub_data(self, data_class: str, filename: str, file_path: str) -> bool:
         """Output raw hub data to json file"""

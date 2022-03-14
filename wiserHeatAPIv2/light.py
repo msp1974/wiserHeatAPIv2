@@ -270,6 +270,10 @@ class _WiserLightCollection(object):
         return list(self._lights)
 
     @property
+    def available_modes(self):
+        return [mode.value for mode in WiserLightModeEnum]
+
+    @property
     def count(self) -> int:
         return len(self.all)
 
