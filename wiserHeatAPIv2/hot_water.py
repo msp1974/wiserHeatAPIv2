@@ -136,6 +136,11 @@ class _WiserHotwater(object):
         """Get the hot water schedule"""
         return self._schedule
 
+    @property
+    def schedule_id(self):
+        """Get the hot water schedule id"""
+        return self._data.get("ScheduleId", 0)
+
     def boost(self, duration: int) -> bool:
         """
         Turn the hot water on for x minutes, overriding the current schedule or manual setting
