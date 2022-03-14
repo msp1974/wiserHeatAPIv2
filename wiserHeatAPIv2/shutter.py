@@ -266,6 +266,10 @@ class _WiserShutterCollection(object):
         return list(self._shutters)
 
     @property
+    def available_modes(self):
+        return [mode.value for mode in WiserShutterModeEnum]
+
+    @property
     def count(self) -> int:
         return len(self.all)
 
