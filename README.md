@@ -126,7 +126,15 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Fix to allow reported current temp below 5C
 
 ### 0.0.25
-- Fix for schedule id returning None
-- Rename output_range to minimum and maximum from min/max
+- Fix for schedule id returning None in light.py and shutter.py
+- Rearchitected capabilities class
 - Fix for command issue for current_lift in shutter.py
+- Rename output_range to minimum and maximum from min/max in light.py
+- Added product_identifier and product_model properties to devices
+- Added manual_level, override_level and scheduled_percentage properties to light.py
+- Added comfort_mode_score, control_direction, demand_type, displayed_setpoint and heating type properties to room.py
+- Added version property to api
+- Added available modes to lights and shutters collection
+- Rearchitected how api holds and manages schedules
+- Added schedule_id property to smartplugs and hot water
 
