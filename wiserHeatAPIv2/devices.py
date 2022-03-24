@@ -142,7 +142,7 @@ class _WiserDeviceCollection(object):
                     )
 
                 # Add light object to collection
-                elif device.get("ProductType") == "DimmableLight":
+                elif device.get("ProductType") in ["DimmableLight", "OnOffLight"]:
                     light_info = [
                         light
                         for light in self._domain_data.get("Light")
