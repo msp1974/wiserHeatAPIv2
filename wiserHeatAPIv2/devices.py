@@ -10,7 +10,7 @@ from .smartvalve import _WiserSmartValve, _WiserSmartValveCollection
 from .heating_actuator import _WiserHeatingActuator, _WiserHeatingActuatorCollection
 from .shutter import _WiserShutter, _WiserShutterCollection
 from .ufh import _WiserUFHController, _WiserUFHControllerCollection
-from .light import _WiserLight, _WiserLightCollection
+from .light import _WiserLight, _WiserDimmableLight, _WiserLightCollection
 
 class _WiserDeviceCollection(object):
     """Class holding all wiser devices"""
@@ -142,7 +142,7 @@ class _WiserDeviceCollection(object):
                     )
 
                 # Add light object to collection
-                elif device.get("ProductType") == "DimmableLight":
+                elif device.get("ProductType") in ["OnOffLight", "DimmableLight"]:
                     light_info = [
                         light
                         for light in self._domain_data.get("Light")
@@ -153,14 +153,24 @@ class _WiserDeviceCollection(object):
                         for schedule in self._schedules.get_by_type(WiserScheduleTypeEnum.level)
                         if schedule.id == light_info[0].get("ScheduleId")
                     ]
-                    self._lights_collection._lights.append(
-                        _WiserLight(
-                            self._wiser_rest_controller,
-                            device,
-                            light_info[0],
-                            light_schedule[0] if len(light_schedule) > 0 else []
+                    if device.get("ProductType") == "DimmableLight":
+                        self._lights_collection._lights.append(
+                            _WiserDimmableLight(
+                                self._wiser_rest_controller,
+                                device,
+                                light_info[0],
+                                light_schedule[0] if len(light_schedule) > 0 else []
+                            )
                         )
-                    )
+                    else:
+                        self._lights_collection._lights.append(
+                            _WiserLight(
+                                self._wiser_rest_controller,
+                                device,
+                                light_info[0],
+                                light_schedule[0] if len(light_schedule) > 0 else []
+                            )
+                        )
                     
     def _get_temp_device_room_id(self, domain_data: dict, device_id: int) -> int:
         rooms = domain_data.get("Room")
@@ -241,9 +251,6 @@ class _WiserDeviceCollection(object):
             return [device for device in self.all if device.room_id == room_id]
         except IndexError:
             return None
-
-    def get_by_room_name(self, room_name:str):
-        pass
 
     def get_by_node_id(self, node_id: int):
         """

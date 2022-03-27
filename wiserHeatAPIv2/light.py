@@ -5,7 +5,7 @@ from .device import _WiserElectricalDevice
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
-from .const import TEXT_AUTO, TEXT_MANUAL, TEXT_ON, TEXT_OFF, TEXT_CLOSE, TEXT_NO_CHANGE, TEXT_UNKNOWN, WISERLIGHT, WISERDEVICE
+from .const import TEXT_AUTO, TEXT_MANUAL, TEXT_ON, TEXT_OFF, TEXT_NO_CHANGE, TEXT_UNKNOWN, WISERLIGHT, WISERDEVICE
 
 import inspect
 
@@ -20,25 +20,6 @@ class WiserAwayActionEnum(enum.Enum):
 
 class _WiserLight(_WiserElectricalDevice):
     """Class representing a Wiser Light device"""
-
-    class _WiserOutputRange(object):
-        """ Data structure for min/max output range"""
-        def __init__(self, data: dict):
-            self._data = data
-
-        @property
-        def minimum(self) -> int:
-            """Get min value"""
-            if self._data:
-                return self._data.get("Minimum")
-            return None
-
-        @property
-        def maximum(self) -> int:
-            """Get max value"""
-            if self._data:
-                return self._data.get("Maximum")
-            return None
 
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
         super().__init__(data, device_type_data)
@@ -84,10 +65,12 @@ class _WiserLight(_WiserElectricalDevice):
 
     @property
     def available_modes(self):
+        """Get available modes"""
         return [mode.value for mode in WiserLightModeEnum]
 
     @property
     def available_away_mode_actions(self):
+        """Get available away mode actions"""
         return [action.value for action in WiserAwayActionEnum]
 
     @property
@@ -107,28 +90,6 @@ class _WiserLight(_WiserElectricalDevice):
     def control_source(self) -> str:
         """Get the current control source of the light"""
         return self._device_type_data.get("ControlSource", TEXT_UNKNOWN)
-
-    @property
-    def current_level(self) -> int:
-        """Get amount light is on"""
-        return self._device_type_data.get("CurrentLevel", 0)
-
-    @property
-    def current_percentage(self) -> int:
-        """Get percentage amount light is on"""
-        return self._device_type_data.get("CurrentPercentage", 0)
-
-    @current_percentage.setter
-    def current_percentage(self, percentage: int):
-        """Set current brightness percentage"""
-        if percentage >= 0 and percentage <= 100:
-            self._send_command(
-                {"RequestOverride":
-                    {"State": TEXT_ON, "Percentage": percentage}
-                }
-            )
-        else:
-            raise ValueError(f"Brightness level percentage must be between 0 and 100")
 
     @property
     def current_state(self) -> str:
@@ -161,16 +122,6 @@ class _WiserLight(_WiserElectricalDevice):
         return self._device_type_data.get("id", 0)
 
     @property
-    def manual_level(self) -> int:
-        """Get manual level of light"""
-        return self._device_type_data.get("ManualLevel", 0)
-
-    @property
-    def override_level(self) -> int:
-        """Get override level of light"""
-        return self._device_type_data.get("OverrideLevel", 0)      
-
-    @property
     def mode(self) -> str:
         """Get or set the current mode of the light (Manual or Auto)"""
         return WiserLightModeEnum[self._mode.lower()].value
@@ -194,12 +145,6 @@ class _WiserLight(_WiserElectricalDevice):
             self._name = name
 
     @property
-    def output_range(self) -> _WiserOutputRange:
-        """Get output range min/max."""
-        #TODO: Add setter for min max values
-        return self._WiserOutputRange(self._device_type_data.get("OutputRange", None))
-
-    @property
     def room_id(self) -> int:
         """Get smart plug room id"""
         return self._device_type_data.get("RoomId", 0)
@@ -215,19 +160,9 @@ class _WiserLight(_WiserElectricalDevice):
         return self._device_type_data.get("ScheduleId")
 
     @property
-    def scheduled_percentage(self) -> int:
-        """Get the scheduled percentage for the light"""
-        return self._data.get("ScheduledPercentage", 0)
-
-    @property
     def target_state(self) -> int:
         """Get target state of light"""
         return self._device_type_data.get("TargetState", 0)
-    
-    @property
-    def target_percentage(self) -> int:
-        """Get target percentage brightness of light"""
-        return self._device_type_data.get("TargetPercentage", 0)
 
     def turn_on(self) -> bool:
         """
@@ -257,7 +192,76 @@ class _WiserLight(_WiserElectricalDevice):
             self._current_state = TEXT_OFF
         return result
 
-      
+class _WiserDimmableLight(_WiserLight):
+    """Class representing a Wiser Dimmable Light device"""
+
+    class _WiserOutputRange(object):
+        """ Data structure for min/max output range"""
+        def __init__(self, data: dict):
+            self._data = data
+
+        @property
+        def minimum(self) -> int:
+            """Get min value"""
+            if self._data:
+                return self._data.get("Minimum")
+            return None
+
+        @property
+        def maximum(self) -> int:
+            """Get max value"""
+            if self._data:
+                return self._data.get("Maximum")
+            return None 
+    
+    @property
+    def current_level(self) -> int:
+        """Get amount light is on"""
+        return self._device_type_data.get("CurrentLevel", 0)
+
+    @property
+    def current_percentage(self) -> int:
+        """Get percentage amount light is on"""
+        return self._device_type_data.get("CurrentPercentage", 0)
+
+    @current_percentage.setter
+    def current_percentage(self, percentage: int):
+        """Set current brightness percentage"""
+        if percentage >= 0 and percentage <= 100:
+            self._send_command(
+                {"RequestOverride":
+                    {"State": TEXT_ON, "Percentage": percentage}
+                }
+            )
+        else:
+            raise ValueError(f"Brightness level percentage must be between 0 and 100")
+
+    @property
+    def manual_level(self) -> int:
+        """Get manual level of light"""
+        return self._device_type_data.get("ManualLevel", 0)
+
+    @property
+    def override_level(self) -> int:
+        """Get override level of light"""
+        return self._device_type_data.get("OverrideLevel", 0)    
+
+    @property
+    def output_range(self) -> _WiserOutputRange:
+        """Get output range min/max."""
+        #TODO: Add setter for min max values
+        return self._WiserOutputRange(self._device_type_data.get("OutputRange", None))  
+
+    @property
+    def scheduled_percentage(self) -> int:
+        """Get the scheduled percentage for the light"""
+        return self._data.get("ScheduledPercentage", 0)
+    
+    @property
+    def target_percentage(self) -> int:
+        """Get target percentage brightness of light"""
+        return self._device_type_data.get("TargetPercentage", 0)
+
 
 class _WiserLightCollection(object):
     """Class holding all wiser lights"""
@@ -266,7 +270,7 @@ class _WiserLightCollection(object):
         self._lights = []
 
     @property
-    def all(self) -> dict:
+    def all(self) -> list:
         return list(self._lights)
 
     @property
@@ -276,6 +280,14 @@ class _WiserLightCollection(object):
     @property
     def count(self) -> int:
         return len(self.all)
+
+    @property
+    def dimmable_lights(self) -> list:
+        return list(dimmable_lights for dimmable_lights in self.all if dimmable_lights.is_dimmable)
+
+    @property
+    def onoff_lights(self) -> list:
+        return list(onoff_lights for onoff_lights in self.all if not onoff_lights.is_dimmable)
 
     def get_by_id(self, id: int) -> _WiserLight:
         """

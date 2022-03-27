@@ -8,12 +8,13 @@ This library implements the local REST API for the Drayton Wiser Heathub System.
 - Rooms
 - iTRVs
 - Heating Actuators (electric heating)
+- Under Floor Heating Controller
 - Roomstats
 - Smartplugs
 - Hot Water
 - System
-- Shutters (basic)
-- Lights (basic)
+- Shutters
+- Lights
 
 ## Command Line Interface
 
@@ -73,7 +74,6 @@ The api holds a collection of all devices connected to your HeatHub.  See below 
 ```
 devices = h.devices.all
 devices = h.devices.get_by_room_id(room_id)
-devices = h.devices.get_by_room_name(room_name)
 devices = h.devices.get_by_parent_node_id(node_id)
 
 device = h.devices.get_by_id(id)
@@ -81,7 +81,7 @@ device = h.devices.get_by_node_id(node_id)
 device = h.devices.get_by_serial_number(serial_no)
 
 ```
-## SmartValve(iTRV), RoomStat, Heating Actuator and SmartPlug Devices
+## SmartValve(iTRV), RoomStat, Heating Actuator, Under Floor Heating Controller, SmartPlug, Shutter and Light Devices
 The api also provides collections of each device type connected to your HeatHub.  Collections are iterable ('all' property) and have methods to return a list of devices by criteria.  See the WiserSmartValveCollection, WiserRoomStatCollection and WiserSmartPlugCollection classes in smartvalve.py, roomstat.py and smartplug.py respectively.  The collections can be accessed as follows:
 
 ```
@@ -93,6 +93,9 @@ roomstat = h.devices.roomstats.get_by_id(id)
 
 actuators = h.devices.heating_actuators.all
 actuator = h.devices.heating_actuators.get_by_id(id)
+
+ufh_controllers = h.devices.ufh_controllers.all
+ufh_controllers = h.devices.ufh_controllers.get_by_id(id)
 
 smartplugs = h.devices.smartplugs.all
 smartplug = h.devices.smartplugs.get_by_id(id)
@@ -162,7 +165,7 @@ from wiserHeatAPIv2 import wiserhub
 h = wiserhub.WiserAPI(HOST, KEY)
 ```
 
-### Devices (see device.py, smartvalve.py, roomstat.py, smartplugs.py)
+### Devices (see device.py, smartvalve.py, roomstat.py, smartplugs.py, ufh.py, shutter.py, light.py)
 ```
 # Get roomstat humidity
 h.devices.roomstats.get_by_id(2).current_humidity
