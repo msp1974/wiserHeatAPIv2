@@ -252,9 +252,6 @@ class _WiserDeviceCollection(object):
         except IndexError:
             return None
 
-    def get_by_room_name(self, room_name:str):
-        pass
-
     def get_by_node_id(self, node_id: int):
         """
         Gets a device object from the devices zigbee node id
