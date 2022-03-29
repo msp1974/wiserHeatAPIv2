@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.26
+# Drayton Wiser Hub API v2 v0.0.27
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -140,4 +140,7 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 
 ### 0.0.26
 - Add onoff lights to light types
+
+### 0.0.27
+- Fix issue using wrong id for lights and shutter device command.
 
