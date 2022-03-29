@@ -41,6 +41,7 @@ class _WiserSmartPlug(_WiserDevice):
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._output_state = device_type_data.get("OutputState", TEXT_OFF)
+        self._indentify_active = data.get("IdentifyActive", False)
 
     def _send_command(self, cmd: dict, device_level: bool = False):
         """
@@ -112,6 +113,16 @@ class _WiserSmartPlug(_WiserDevice):
     def device_lock_enabled(self, enable: bool):
         if self._send_command({"DeviceLockEnabled": enable}, True):
             self._device_lock_enabled = enable
+
+    @property
+    def identify(self) -> bool:
+        """Get or set if the smartplug identify function is enabled"""
+        return self._indentify_active
+
+    @identify.setter
+    def identify(self, enable: bool = False):
+        if self._send_command({"Identify": enable}, True):
+            self._indentify_active = enable
 
     @property
     def instantaneous_power(self) -> int:
