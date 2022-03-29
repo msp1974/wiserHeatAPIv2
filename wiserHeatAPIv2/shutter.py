@@ -71,7 +71,7 @@ class _WiserShutter(_WiserElectricalDevice):
         return: boolen - true = success, false = failed
         """
         if device_level:
-            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.shutter_id), cmd)
+            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.id), cmd)
         else:
             result = self._wiser_rest_controller._send_command(WISERSHUTTER.format(self.shutter_id), cmd)
         if result:
