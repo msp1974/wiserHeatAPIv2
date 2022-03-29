@@ -4,7 +4,7 @@ from .const import TEXT_UNKNOWN
 
 from .rest_controller import _WiserRestController
 from .roomstat import _WiserRoomStat, _WiserRoomStatCollection
-from .schedule import _WiserScheduleCollection, WiserScheduleTypeEnum
+from .schedule import _WiserScheduleCollection, WiserScheduleTypeEnum, _WiserSchedule
 from .smartplug import _WiserSmartPlug, _WiserSmartPlugCollection
 from .smartvalve import _WiserSmartValve, _WiserSmartValveCollection
 from .heating_actuator import _WiserHeatingActuator, _WiserHeatingActuatorCollection
@@ -84,7 +84,7 @@ class _WiserDeviceCollection(object):
                             self._wiser_rest_controller,
                             device,
                             smartplug_info[0],
-                            smartplug_schedule[0] if len(smartplug_schedule) > 0 else []
+                            smartplug_schedule[0] if len(smartplug_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.onoff.value, {})
                         )
                     )
 
@@ -137,7 +137,7 @@ class _WiserDeviceCollection(object):
                             self._wiser_rest_controller,
                             device,
                             shutter_info[0],
-                            shutter_schedule[0] if len(shutter_schedule) > 0 else []
+                            shutter_schedule[0] if len(shutter_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.level.value, {})
                         )
                     )
 
@@ -159,7 +159,7 @@ class _WiserDeviceCollection(object):
                                 self._wiser_rest_controller,
                                 device,
                                 light_info[0],
-                                light_schedule[0] if len(light_schedule) > 0 else []
+                                light_schedule[0] if len(light_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.level.value, {})
                             )
                         )
                     else:
@@ -168,7 +168,7 @@ class _WiserDeviceCollection(object):
                                 self._wiser_rest_controller,
                                 device,
                                 light_info[0],
-                                light_schedule[0] if len(light_schedule) > 0 else []
+                                light_schedule[0] if len(light_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.onoff.value, {})
                             )
                         )
                     

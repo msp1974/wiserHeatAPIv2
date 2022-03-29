@@ -3,7 +3,7 @@ import enum
 
 from .devices import _WiserDeviceCollection
 from .helpers import _WiserTemperatureFunctions as tf
-from .schedule import _WiserSchedule, _WiserScheduleCollection
+from .schedule import _WiserSchedule, _WiserScheduleCollection, WiserScheduleTypeEnum
 from .rest_controller import _WiserRestController
 
 from .const import (
@@ -429,7 +429,7 @@ class _WiserRoomCollection(object):
                 _WiserRoom(
                     self._wiser_rest_controller,
                     room,
-                    schedule[0] if len(schedule) > 0 else None,
+                    schedule[0] if len(schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.heating.value, {}),
                     devices,
                 )
             )
