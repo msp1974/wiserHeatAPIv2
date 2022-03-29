@@ -13,7 +13,7 @@ from .const import (SPECIAL_DAYS, SPECIAL_TIMES, TEMP_MINIMUM, TEMP_OFF, TEXT_DE
                     TEXT_TEMP, TEXT_TIME, TEXT_UNKNOWN, TEXT_WEEKDAYS,
                     TEXT_WEEKENDS, WEEKDAYS, WEEKENDS, WISERHUBSCHEDULES)
 from .helpers import _WiserTemperatureFunctions as tf
-from .rest_controller import _WiserRestController
+from .rest_controller import _WiserRestController, WiserRestActionEnum
 
 class WiserScheduleTypeEnum(enum.Enum):
     heating = TEXT_HEATING
@@ -106,14 +106,14 @@ class _WiserSchedule(object):
     
     def _send_schedule(self, schedule_data: dict, id: int = 0) -> bool:
         """
-        Send system control command to Wiser Hub
-        param cmd: json command structure
+        Send schedule data to Wiser Hub
+        param cmd: json schedule data
         return: boolen - true = success, false = failed
         """
         try:
-            result = self._wiser_rest_controller._send_schedule(
-                WISERHUBSCHEDULES
-                + "{}/{}".format(self._type, str(id if id != 0 else self.id)),
+            result = self._wiser_rest_controller._schedule_action(
+                WiserRestActionEnum.PATCH,
+                "{}/{}".format(self._type, str(id if id != 0 else self.id)),
                 schedule_data,
             )
             if result:
