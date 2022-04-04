@@ -43,6 +43,10 @@ class _WiserSmartPlug(_WiserDevice):
         self._output_state = device_type_data.get("OutputState", TEXT_OFF)
         self._indentify_active = data.get("IdentifyActive", False)
 
+        # Add device id to schedule
+        if self._schedule:
+            self.schedule._device_ids.append(self.id)
+
     def _send_command(self, cmd: dict, device_level: bool = False):
         """
         Send control command to the smart plug

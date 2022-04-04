@@ -33,6 +33,10 @@ class _WiserLight(_WiserElectricalDevice):
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._indentify_active = data.get("IdentifyActive", False)
 
+        # Add device id to schedule
+        if self._schedule:
+            self.schedule._device_ids.append(self.id)
+
     def _send_command(self, cmd: dict, device_level: bool = False):
         """
         Send control command to the light
