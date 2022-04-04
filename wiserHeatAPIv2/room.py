@@ -43,6 +43,10 @@ class _WiserRoom(object):
         self._name = room.get("Name")
         self._window_detection_active = room.get("WindowDetectionActive", TEXT_UNKNOWN)
 
+        # Add device id to schedule
+        if self._schedule:
+            self.schedule._room_ids.append(self.id)
+
     def _effective_heating_mode(self, mode: str, temp: float) -> str:
         if mode.casefold() == TEXT_MANUAL.casefold() and temp == TEMP_OFF:
             return WiserHeatingModeEnum["off"].value
@@ -429,7 +433,7 @@ class _WiserRoomCollection(object):
                 _WiserRoom(
                     self._wiser_rest_controller,
                     room,
-                    schedule[0] if len(schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.heating.value, {}),
+                    schedule[0] if len(schedule) > 0 else None,
                     devices,
                 )
             )
