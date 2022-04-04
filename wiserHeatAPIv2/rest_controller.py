@@ -162,7 +162,7 @@ class _WiserRestController(object):
         if self._do_hub_action(WiserRestActionEnum.PATCH, url, command_data):
             return True
 
-    def _schedule_action(self, action: WiserRestActionEnum, url: str, schedule_data: dict = None):
+    def _do_schedule_action(self, action: WiserRestActionEnum, url: str, schedule_data: dict = None):
         """
         Perform schedule action to hub and raise errors if fails
         param url: url of hub rest api endpoint
@@ -174,6 +174,42 @@ class _WiserRestController(object):
             "Actioning schedule to url: {} with action {} and data {}".format(url, action.value, schedule_data)
         )
         return self._do_hub_action(action, url, schedule_data)
+
+    def _send_schedule_command(self, action: str, schedule_data: dict, id: int = 0) -> bool:
+        """
+        Send schedule data to Wiser Hub
+        param schedule_data: json schedule data
+        param id: schedule id
+        return: boolen - true = success, false = failed
+        """
+        if action == "UPDATE":
+            result = self._do_schedule_action(
+                WiserRestActionEnum.PATCH,
+                "{}/{}".format(self._type, str(id if id != 0 else self.id)),
+                schedule_data,
+            )
+
+        elif action == "CREATE":
+            result = self._do_schedule_action(
+                WiserRestActionEnum.POST,
+                "Assign",
+                schedule_data,
+            )
+
+        elif action == "ASSIGN":
+            result = self._do_schedule_action(
+                WiserRestActionEnum.PATCH,
+                "Assign",
+                schedule_data,
+            )
+        
+        elif action == "DELETE":
+            result = self._do_schedule_action(
+                WiserRestActionEnum.DELETE,
+                "{}/{}".format(self._type, str(id if id != 0 else self.id)),
+                schedule_data,
+            )
+        return result
 
 
     
