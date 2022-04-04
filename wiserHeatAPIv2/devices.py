@@ -84,7 +84,7 @@ class _WiserDeviceCollection(object):
                             self._wiser_rest_controller,
                             device,
                             smartplug_info[0],
-                            smartplug_schedule[0] if len(smartplug_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.onoff.value, {})
+                            smartplug_schedule[0] if len(smartplug_schedule) > 0 else None
                         )
                     )
 
@@ -137,7 +137,7 @@ class _WiserDeviceCollection(object):
                             self._wiser_rest_controller,
                             device,
                             shutter_info[0],
-                            shutter_schedule[0] if len(shutter_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.level.value, {})
+                            shutter_schedule[0] if len(shutter_schedule) > 0 else {}
                         )
                     )
 
@@ -159,7 +159,7 @@ class _WiserDeviceCollection(object):
                                 self._wiser_rest_controller,
                                 device,
                                 light_info[0],
-                                light_schedule[0] if len(light_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.level.value, {})
+                                light_schedule[0] if len(light_schedule) > 0 else None
                             )
                         )
                     else:
@@ -168,7 +168,7 @@ class _WiserDeviceCollection(object):
                                 self._wiser_rest_controller,
                                 device,
                                 light_info[0],
-                                light_schedule[0] if len(light_schedule) > 0 else _WiserSchedule(self._wiser_rest_controller, WiserScheduleTypeEnum.onoff.value, {})
+                                light_schedule[0] if len(light_schedule) > 0 else None
                             )
                         )
                     
