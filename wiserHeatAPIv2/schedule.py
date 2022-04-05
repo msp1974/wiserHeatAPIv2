@@ -180,8 +180,12 @@ class _WiserSchedule(object):
         return: bool
         """
         try:
-            self._send_schedule_command("DELETE")
-            return True
+            if self.id != 1000:
+                self._send_schedule_command("DELETE")
+                return True
+            else:
+                _LOGGER.error("You cannot delete the schedule for HotWater")
+                return False
         except Exception as ex:
             _LOGGER.error(f"Error deleting schedule: {ex}")
             return False
@@ -680,7 +684,7 @@ class _WiserScheduleCollection(object):
             _LOGGER.error(f"Invalid schedule id for {'from_id' if not from_schedule else 'to_id'}")
         return False
 
-    def create_schedule(self, schedule_type: WiserScheduleTypeEnum, name: str, assignments: list = None):
+    def create_schedule(self, schedule_type: WiserScheduleTypeEnum, name: str, assignments: list = []):
         """
         Create a new schedule entry
         param schedule_type: type of schedule to create
