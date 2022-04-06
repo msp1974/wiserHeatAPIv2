@@ -147,7 +147,7 @@ class _WiserRestController(object):
         """Get data from hub"""
         return self._do_hub_action(WiserRestActionEnum.GET ,url)
 
-    def _send_command(self, url: str, command_data: dict):
+    def _send_command(self, url: str, command_data: dict, method: WiserRestActionEnum = WiserRestActionEnum.PATCH):
         """
         Send control command to hub and raise errors if fails
         param url: url of hub rest api endpoint
@@ -159,7 +159,7 @@ class _WiserRestController(object):
             "Sending command to url: {} with parameters {}".format(url, command_data)
         )
         
-        if self._do_hub_action(WiserRestActionEnum.PATCH, url, command_data):
+        if self._do_hub_action(method, url, command_data):
             return True
 
     def _do_schedule_action(self, action: WiserRestActionEnum, url: str, schedule_data: dict = None):
