@@ -4,7 +4,7 @@ import enum
 from .devices import _WiserDeviceCollection
 from .helpers import _WiserTemperatureFunctions as tf
 from .schedule import _WiserSchedule, _WiserScheduleCollection, WiserScheduleTypeEnum
-from .rest_controller import _WiserRestController
+from .rest_controller import _WiserRestController, WiserRestActionEnum
 
 from .const import (
     TEMP_MINIMUM,
@@ -318,6 +318,10 @@ class _WiserRoom(object):
         """
         return self._data.get("WindowState", TEXT_UNKNOWN)
 
+    def delete(self):
+            # call room/id with delete
+            raise NotImplemented
+
     def boost(self, inc_temp: float, duration: int) -> bool:
         """
         Boost the target temperature of the room
@@ -450,12 +454,11 @@ class _WiserRoomCollection(object):
         return len(self._rooms)
 
     def add(self, name):
-        # call domain/room with post and name param
-        raise NotImplemented
-
-    def delete(self, id: int):
-        # call room/id with delete
-        raise NotImplemented
+        """
+        Add new room
+        param name: name of room
+        """
+        return self._wiser_rest_controller._send_command(WISERROOM, {"name": name}, WiserRestActionEnum.POST)        
 
     def get_by_id(self, id: int) -> _WiserRoom:
         """
