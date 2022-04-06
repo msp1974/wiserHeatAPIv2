@@ -54,13 +54,13 @@ class _WiserRoom(object):
             return WiserHeatingModeEnum["manual"].value
         return WiserHeatingModeEnum["auto"].value
 
-    def _send_command(self, cmd: dict):
+    def _send_command(self, cmd: dict, method: WiserRestActionEnum = WiserRestActionEnum.PATCH):
         """
         Send control command to the room
         param cmd: json command structure
         return: boolen
         """
-        result = self._wiser_rest_controller._send_command(WISERROOM.format(self.id), cmd)
+        result = self._wiser_rest_controller._send_command(WISERROOM.format(self.id), cmd, method)
         if result:
             _LOGGER.debug(
                 "Wiser room - {} command successful - {}".format(inspect.stack()[1].function, result)
@@ -319,8 +319,10 @@ class _WiserRoom(object):
         return self._data.get("WindowState", TEXT_UNKNOWN)
 
     def delete(self):
-            # call room/id with delete
-            raise NotImplemented
+        """
+        Delete room from wiserhub
+        """
+        return self._send_command(None, WiserRestActionEnum.DELETE)
 
     def boost(self, inc_temp: float, duration: int) -> bool:
         """
