@@ -198,6 +198,29 @@ class _WiserSignalStrength(object):
         return min(100, int(2 * (self.device_reception_rssi + 100))) if self.device_reception_rssi != 0 else 0
 
 
+class _WiserDetectedNetwork:
+    """Data structure for detected network"""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def ssid(self) -> str:
+        return self._data.get("SSID")
+    
+    @property
+    def channel(self) -> int:
+        return self._data.get("Channel")
+
+    @property
+    def security_mode(self) -> str:
+        return self._data.get("SecurityMode")
+
+    @property
+    def rssi(self) -> int:
+        return self._data.get("RSSI")
+
+
 class _WiserNetwork:
     """Data structure for network information for a Wiser Hub"""
 
@@ -205,6 +228,14 @@ class _WiserNetwork:
         self._data = data
         self._dhcp_status = data.get("DhcpStatus", {})
         self._network_interface = data.get("NetworkInterface", {})
+        self._detected_access_points = []
+
+        for detected_network in self._data.get("DetectedAccessPoints", []):
+            self._detected_access_points.append(_WiserDetectedNetwork(detected_network))
+
+    @property
+    def detected_access_points(self) -> list:
+        return self._detected_access_points
 
     @property
     def dhcp_mode(self) -> str:
