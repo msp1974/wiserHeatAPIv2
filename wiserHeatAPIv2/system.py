@@ -17,6 +17,7 @@ from .const import (
     TEXT_ON,
     TEXT_UNKNOWN,
     MAX_BOOST_INCREASE,
+    WISERHUBNETWORK,
     WISERSYSTEM
 )
 
@@ -347,5 +348,28 @@ class _WiserSystem(object):
         return: boolean
         """
         return self._send_command({"RequestOverride": {"Type": "CancelUserOverrides"}})
+
+    def connect_to_network(self, ssid: str, password: str, channel: int = None, security_mode: str = None):
+        """
+        Connect hub to wifi network
+        param ssid: wifi network ssid
+        param password: wifi password
+        param channel: wifi channel (optional)
+        param security_mode: wifi security mode (optional)
+        return: boolean
+        """
+        cmd_data = {"Enabled": True}
+        if ssid and password:
+            cmd_data["SSID"] = ssid
+            cmd_data["SecurityKey"] = password
+
+        if channel:
+            cmd_data["Channel"] = channel
+
+        if security_mode:
+            cmd_data["SecurityMode"] = security_mode
+        
+        return self._wiser_rest_controller._send_command(f"{WISERHUBNETWORK}/Station", cmd_data)
+
 
 
