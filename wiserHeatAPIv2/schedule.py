@@ -112,7 +112,7 @@ class _WiserSchedule(object):
         return: boolen - true = success, false = failed
         """
         try:
-            result = self._wiser_rest_controller._send_schedule_command(action, schedule_data, id)
+            result = self._wiser_rest_controller._send_schedule_command(action, schedule_data, (id if id != 0 else self.id), self._type)
             return result
         except Exception as ex:
             _LOGGER.debug(ex)
@@ -294,7 +294,7 @@ class _WiserHeatingSchedule(_WiserSchedule):
         if include_current:
             room_ids = room_ids + self.room_ids
         schedule_data = {
-            "Assignments": room_ids,
+            "Assignments": list(set(room_ids)),
             self.schedule_type:
                 {
                     "id": self.id
@@ -372,7 +372,7 @@ class _WiserOnOffSchedule(_WiserSchedule):
         if include_current:
             device_ids = device_ids + self.device_ids
         schedule_data = {
-            "Assignments": device_ids,
+            "Assignments": list(set(device_ids)),
             self.schedule_type:
                 {
                     "id": self.id
@@ -455,7 +455,7 @@ class _WiserLevelSchedule(_WiserSchedule):
         if include_current:
             device_ids = device_ids + self.device_ids
         schedule_data = {
-            "Assignments": device_ids,
+            "Assignments": list(set(device_ids)),
             self.schedule_type:
                 {
                     "id": self.id
