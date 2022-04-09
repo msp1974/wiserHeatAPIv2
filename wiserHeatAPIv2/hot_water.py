@@ -32,6 +32,10 @@ class _WiserHotwater(object):
         self._schedule = schedule
         self._mode = self._data.get("Mode", TEXT_AUTO)
 
+        # Add device id to schedule
+        if self._schedule:
+            self.schedule._device_ids.append(self.id)
+
     def _send_command(self, cmd: dict):
         """
         Send control command to the hot water
@@ -130,6 +134,14 @@ class _WiserHotwater(object):
                 f"{mode} is not a valid Hot Water mode.  Valid modes are {self.available_modes}"
             )
         self._mode = WiserHotWaterModeEnum[mode.lower()].value
+
+    @property
+    def name(self) -> str:
+        return "HotWater"
+
+    @property
+    def product_type(self) -> str:
+        return "HotWater"
 
     @property
     def schedule(self) -> _WiserSchedule:

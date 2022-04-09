@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.26
+# Drayton Wiser Hub API v2 v0.0.27
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -141,3 +141,12 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 ### 0.0.26
 - Add onoff lights to light types
 
+### 0.0.27
+- Fix issue using wrong id for lights and shutter device command.
+- Added identify method for Smart Plug
+- Added new assign, create, delete functions to schedules
+- Added new allow_add_devices method to system object to allow new device pairing
+- Added new add and delete methods on room object to create/delete room
+- Added detected_networks property to system.network object
+- Added connect_to_network method to allow changing wifi connection on hub
+- Removed unused get_by_room_name on device s collection

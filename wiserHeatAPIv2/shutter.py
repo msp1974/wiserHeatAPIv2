@@ -63,6 +63,11 @@ class _WiserShutter(_WiserElectricalDevice):
         self._name = device_type_data.get("Name", TEXT_UNKNOWN)
         self._device_lock_enabled = data.get("DeviceLockEnabled", False)
         self._indentify_active = data.get("IdentifyActive", False)
+        
+        # Add device id to schedule
+        if self._schedule:
+            self.schedule._device_ids.append(self.id)
+
 
     def _send_command(self, cmd: dict, device_level: bool = False):
         """
@@ -71,7 +76,7 @@ class _WiserShutter(_WiserElectricalDevice):
         return: boolen - true = success, false = failed
         """
         if device_level:
-            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.shutter_id), cmd)
+            result = self._wiser_rest_controller._send_command(WISERDEVICE.format(self.id), cmd)
         else:
             result = self._wiser_rest_controller._send_command(WISERSHUTTER.format(self.shutter_id), cmd)
         if result:

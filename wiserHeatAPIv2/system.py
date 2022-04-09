@@ -17,6 +17,7 @@ from .const import (
     TEXT_ON,
     TEXT_UNKNOWN,
     MAX_BOOST_INCREASE,
+    WISERHUBNETWORK,
     WISERSYSTEM
 )
 
@@ -68,13 +69,16 @@ class _WiserSystem(object):
                 if device.get("ProductType") == "Controller":
                     return device
 
-    def _send_command(self, cmd: dict) -> bool:
+    def _send_command(self, cmd: dict, path:str = None) -> bool:
         """
         Send system control command to Wiser Hub
         param cmd: json command structure
         return: boolen - true = success, false = failed
         """
-        result = self._wiser_rest_controller._send_command(WISERSYSTEM, cmd)
+        if path:
+            result = self._wiser_rest_controller._send_command(f"{WISERSYSTEM}/{path}", cmd)
+        else:
+            result = self._wiser_rest_controller._send_command(WISERSYSTEM, cmd)
         if result:
             _LOGGER.debug(
                 "Wiser hub - {} command successful".format(inspect.stack()[1].function)
@@ -315,6 +319,11 @@ class _WiserSystem(object):
         """Get zigbee info"""
         return self._zigbee_data
 
+    def allow_add_device(self, allow_time:int = 120):
+        """
+        Put hub in permit join mode for adding new devices
+        """
+        return self._send_command(allow_time, "RequestPermitJoin")
 
     def boost_all_rooms(self, inc_temp: float, duration: int) -> bool:
         """
@@ -339,5 +348,28 @@ class _WiserSystem(object):
         return: boolean
         """
         return self._send_command({"RequestOverride": {"Type": "CancelUserOverrides"}})
+
+    def connect_to_network(self, ssid: str, password: str, channel: int = None, security_mode: str = None):
+        """
+        Connect hub to wifi network
+        param ssid: wifi network ssid
+        param password: wifi password
+        param channel: wifi channel (optional)
+        param security_mode: wifi security mode (optional)
+        return: boolean
+        """
+        cmd_data = {"Enabled": True}
+        if ssid and password:
+            cmd_data["SSID"] = ssid
+            cmd_data["SecurityKey"] = password
+
+        if channel:
+            cmd_data["Channel"] = channel
+
+        if security_mode:
+            cmd_data["SecurityMode"] = security_mode
+        
+        return self._wiser_rest_controller._send_command(f"{WISERHUBNETWORK}/Station", cmd_data)
+
 
 

@@ -3,8 +3,8 @@ import enum
 
 from .devices import _WiserDeviceCollection
 from .helpers import _WiserTemperatureFunctions as tf
-from .schedule import _WiserSchedule, _WiserScheduleCollection
-from .rest_controller import _WiserRestController
+from .schedule import _WiserSchedule, _WiserScheduleCollection, WiserScheduleTypeEnum
+from .rest_controller import _WiserRestController, WiserRestActionEnum
 
 from .const import (
     TEMP_MINIMUM,
@@ -43,6 +43,10 @@ class _WiserRoom(object):
         self._name = room.get("Name")
         self._window_detection_active = room.get("WindowDetectionActive", TEXT_UNKNOWN)
 
+        # Add device id to schedule
+        if self._schedule:
+            self.schedule._room_ids.append(self.id)
+
     def _effective_heating_mode(self, mode: str, temp: float) -> str:
         if mode.casefold() == TEXT_MANUAL.casefold() and temp == TEMP_OFF:
             return WiserHeatingModeEnum["off"].value
@@ -50,13 +54,13 @@ class _WiserRoom(object):
             return WiserHeatingModeEnum["manual"].value
         return WiserHeatingModeEnum["auto"].value
 
-    def _send_command(self, cmd: dict):
+    def _send_command(self, cmd: dict, method: WiserRestActionEnum = WiserRestActionEnum.PATCH):
         """
         Send control command to the room
         param cmd: json command structure
         return: boolen
         """
-        result = self._wiser_rest_controller._send_command(WISERROOM.format(self.id), cmd)
+        result = self._wiser_rest_controller._send_command(WISERROOM.format(self.id), cmd, method)
         if result:
             _LOGGER.debug(
                 "Wiser room - {} command successful - {}".format(inspect.stack()[1].function, result)
@@ -314,6 +318,12 @@ class _WiserRoom(object):
         """
         return self._data.get("WindowState", TEXT_UNKNOWN)
 
+    def delete(self):
+        """
+        Delete room from wiserhub
+        """
+        return self._send_command(None, WiserRestActionEnum.DELETE)
+
     def boost(self, inc_temp: float, duration: int) -> bool:
         """
         Boost the target temperature of the room
@@ -446,12 +456,11 @@ class _WiserRoomCollection(object):
         return len(self._rooms)
 
     def add(self, name):
-        # call domain/room with post and name param
-        raise NotImplemented
-
-    def delete(self, id: int):
-        # call room/id with delete
-        raise NotImplemented
+        """
+        Add new room
+        param name: name of room
+        """
+        return self._wiser_rest_controller._send_command(WISERROOM, {"name": name}, WiserRestActionEnum.POST)        
 
     def get_by_id(self, id: int) -> _WiserRoom:
         """

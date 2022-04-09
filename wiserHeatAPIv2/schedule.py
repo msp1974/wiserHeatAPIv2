@@ -11,9 +11,9 @@ from . import _LOGGER
 from .const import (SPECIAL_DAYS, SPECIAL_TIMES, TEMP_MINIMUM, TEMP_OFF, TEXT_DEGREESC,
                     TEXT_HEATING, TEXT_LEVEL, TEXT_LIGHTING, TEXT_OFF, TEXT_ON, TEXT_ONOFF, TEXT_SHUTTERS, TEXT_STATE,
                     TEXT_TEMP, TEXT_TIME, TEXT_UNKNOWN, TEXT_WEEKDAYS,
-                    TEXT_WEEKENDS, WEEKDAYS, WEEKENDS, WISERHUBSCHEDULES)
+                    TEXT_WEEKENDS, WEEKDAYS, WEEKENDS)
 from .helpers import _WiserTemperatureFunctions as tf
-from .rest_controller import _WiserRestController
+from .rest_controller import _WiserRestController, WiserRestActionEnum
 
 class WiserScheduleTypeEnum(enum.Enum):
     heating = TEXT_HEATING
@@ -104,24 +104,15 @@ class _WiserSchedule(object):
             return None
 
     
-    def _send_schedule(self, schedule_data: dict, id: int = 0) -> bool:
+    def _send_schedule_command(self, action: str, schedule_data: dict, id: int = 0) -> bool:
         """
-        Send system control command to Wiser Hub
-        param cmd: json command structure
+        Send schedule command to Wiser Hub
+        param schedule_data: json schedule data
+        param id: schedule id
         return: boolen - true = success, false = failed
         """
         try:
-            result = self._wiser_rest_controller._send_schedule(
-                WISERHUBSCHEDULES
-                + "{}/{}".format(self._type, str(id if id != 0 else self.id)),
-                schedule_data,
-            )
-            if result:
-                _LOGGER.debug(
-                    "Wiser schedule - {} command successful".format(
-                        inspect.stack()[1].function
-                    )
-                )
+            result = self._wiser_rest_controller._send_schedule_command(action, schedule_data, (id if id != 0 else self.id), self._type)
             return result
         except Exception as ex:
             _LOGGER.debug(ex)
@@ -137,7 +128,6 @@ class _WiserSchedule(object):
         if self._type == WiserScheduleTypeEnum.level.value:
             return self._schedule_data.get("CurrentLevel", TEXT_UNKNOWN)
 
-
     @property
     def id(self) -> int:
         """Get id of schedule"""
@@ -151,7 +141,7 @@ class _WiserSchedule(object):
     @name.setter
     def name(self, name: str):
         """Set name of schedule"""
-        self._send_schedule(f'{"Name": {name}}', self.id)
+        self._send_schedule_command("UPDATE", f'{"Name": {name}}', self.id)
 
     @property
     def next(self):
@@ -178,10 +168,26 @@ class _WiserSchedule(object):
         return: boolen - true = successfully set, false = failed to set
         """
         try:
-            self._send_schedule(self._remove_schedule_elements(self._schedule_data.copy()), to_id)
+            self._send_schedule_command("UPDATE", self._remove_schedule_elements(self._schedule_data.copy()), to_id)
             return True
         except Exception as ex:
             _LOGGER.error(f"Error copying schedule: {ex}")
+            return False
+
+    def delete_schedule(self) -> bool:
+        """
+        Delete this schedule
+        return: bool
+        """
+        try:
+            if self.id != 1000:
+                self._send_schedule_command("DELETE")
+                return True
+            else:
+                _LOGGER.error("You cannot delete the schedule for HotWater")
+                return False
+        except Exception as ex:
+            _LOGGER.error(f"Error deleting schedule: {ex}")
             return False
 
     def save_schedule_to_file(self, schedule_file: str) -> bool:
@@ -220,7 +226,7 @@ class _WiserSchedule(object):
         return: boolen - true = successfully set, false = failed to set
         """
         try:
-            self._send_schedule(self._remove_schedule_elements(schedule_data))  
+            self._send_schedule_command("UPDATE", self._remove_schedule_elements(schedule_data))  
             return True
         except Exception as ex:
             _LOGGER.error(f"Error copying schedule: {ex}")
@@ -270,6 +276,37 @@ class _WiserHeatingSchedule(_WiserSchedule):
     """ Class for Wiser Heating Schedule """
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data)
+        self._room_ids = []
+
+    @property
+    def room_ids(self):
+        """Get ids of rooms schedule attached to"""
+        return self._room_ids
+
+    def assign_schedule(self, room_ids: list, include_current: bool = True) -> bool:
+        """
+        Assign schedule to rooms
+        param room_ids: ids of rooms to assign schedule to
+        return: bool
+        """
+        if not isinstance(room_ids, list):
+            room_ids = [room_ids]
+        if include_current:
+            room_ids = room_ids + self.room_ids
+        schedule_data = {
+            "Assignments": list(set(room_ids)),
+            self.schedule_type:
+                {
+                    "id": self.id
+                }
+            }
+
+        try:
+            self._send_schedule_command("ASSIGN", schedule_data)
+        except Exception as ex:
+            _LOGGER.error(f"Error assigning schedule: {ex}")
+            return False
+
 
     def _convert_wiser_to_yaml_day(self, day_schedule) -> list:
         """
@@ -317,6 +354,36 @@ class _WiserOnOffSchedule(_WiserSchedule):
     """ Class for Wiser OnOff Schedule """
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data)
+        self._device_ids = []
+
+    @property
+    def device_ids(self):
+        """Get ids of devices schedule attached to"""
+        return self._device_ids
+
+    def assign_schedule(self, device_ids: list, include_current: bool = True) -> bool:
+        """
+        Assign schedule to devices
+        param device_ids: ids of devices to assign schedule to
+        return: bool
+        """
+        if not isinstance(device_ids, list):
+            device_ids = [device_ids]
+        if include_current:
+            device_ids = device_ids + self.device_ids
+        schedule_data = {
+            "Assignments": list(set(device_ids)),
+            self.schedule_type:
+                {
+                    "id": self.id
+                }
+            }
+
+        try:
+            self._send_schedule_command("ASSIGN", schedule_data)
+        except Exception as ex:
+            _LOGGER.error(f"Error assigning schedule: {ex}")
+            return False
 
     def _convert_wiser_to_yaml_day(self, day_schedule) -> list:
         """
@@ -365,11 +432,41 @@ class _WiserLevelSchedule(_WiserSchedule):
     """ Class for Wiser Level Schedule """
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data)
+        self._device_ids = []
+
+    @property
+    def device_ids(self):
+        """Get ids of devices schedule attached to"""
+        return self._device_ids
 
     @property
     def schedule_level_type(self) -> str:
         """Get schedule type level sub type"""
         return self._schedule_data.get("Type", TEXT_UNKNOWN)
+
+    def assign_schedule(self, device_ids: list, include_current: bool = True) -> bool:
+        """
+        Assign schedule to devices
+        param device_ids: ids of devices to assign schedule to
+        return: bool
+        """
+        if not isinstance(device_ids, list):
+            device_ids = [device_ids]
+        if include_current:
+            device_ids = device_ids + self.device_ids
+        schedule_data = {
+            "Assignments": list(set(device_ids)),
+            self.schedule_type:
+                {
+                    "id": self.id
+                }
+            }
+
+        try:
+            self._send_schedule_command("ASSIGN", schedule_data)
+        except Exception as ex:
+            _LOGGER.error(f"Error assigning schedule: {ex}")
+            return False
 
     def _convert_wiser_to_yaml_day(self, day_schedule) -> list:
         """
@@ -458,7 +555,7 @@ class _WiserScheduleNext:
 class _WiserScheduleCollection(object):
     """Class holding all wiser schedule objects"""
 
-    def __init__(self, wiser_rest_controller, schedule_data: dict):
+    def __init__(self, wiser_rest_controller: _WiserRestController, schedule_data: dict):
         self._wiser_rest_controller = wiser_rest_controller
         self._heating_schedules = []
         self._onoff_schedules = []
@@ -476,6 +573,20 @@ class _WiserScheduleCollection(object):
                 if schedule_type == WiserScheduleTypeEnum.level.value:
                     self._level_schedules.append(_WiserLevelSchedule(self._wiser_rest_controller, schedule_type, schedule))
 
+    def _send_schedule_command(self, action: str, schedule_data: dict, id: int = 0) -> bool:
+        """
+        Send schedule command to Wiser Hub
+        param schedule_data: json schedule data
+        param id: schedule id
+        return: boolen - true = success, false = failed
+        """
+        try:
+            result = self._wiser_rest_controller._send_schedule_command(action, schedule_data, id)
+            return result
+        except Exception as ex:
+            _LOGGER.debug(ex)
+            raise
+
     @property
     def all(self) -> list:
         return (
@@ -488,6 +599,18 @@ class _WiserScheduleCollection(object):
     def count(self) -> int:
         return len(self.all)
 
+    @property
+    def heating_schedules(self) -> list:
+        return self._heating_schedules
+
+    @property
+    def level_schedules(self) -> list:
+        return self._level_schedules
+
+    @property
+    def onoff_schedules(self) -> list:
+        return self._onoff_schedules
+
     def get_by_id(self, schedule_type: WiserScheduleTypeEnum, id: int) -> _WiserSchedule:
         """
         Gets a schedule object from the schedules id
@@ -498,6 +621,18 @@ class _WiserScheduleCollection(object):
             if schedule_type == WiserScheduleTypeEnum.level:
                 return [schedule for schedule in self.all if schedule._type == schedule_type.value and schedule.id == id][0]
             return [schedule for schedule in self.all if schedule.schedule_type == schedule_type.value and schedule.id == id][0]
+        except IndexError:
+            return None
+
+    def get_by_room_id(self, room_id: int) -> list:
+        try:
+            return [schedule for schedule in self._heating_schedules if schedule.room_id == room_id][0]
+        except IndexError:
+            return None
+
+    def get_by_device_id(self, device_id: int) -> list:
+        try:
+            return [schedule for schedule in self._onoff_schedules + self._level_schedules if schedule.device_id == device_id][0]
         except IndexError:
             return None
 
@@ -548,4 +683,26 @@ class _WiserScheduleCollection(object):
         else:
             _LOGGER.error(f"Invalid schedule id for {'from_id' if not from_schedule else 'to_id'}")
         return False
+
+    def create_schedule(self, schedule_type: WiserScheduleTypeEnum, name: str, assignments: list = []):
+        """
+        Create a new schedule entry
+        param schedule_type: type of schedule to create
+        param name: name of schedule
+        param assignments: optional - assign new schedule to list of rooms or devices
+        param schedule_data: optional - the schedule data to create schedule with.  Leaving blank creates default schedule
+        """
+        if schedule_type in [WiserScheduleTypeEnum.lighting, WiserScheduleTypeEnum.shutters]:
+            schedule_type = WiserScheduleTypeEnum.level
+
+        schedule_data = {
+            "Assignments": assignments,
+            schedule_type.value:
+                {
+                    "Name": name
+                }
+            }
+
+        self._send_schedule_command("CREATE", schedule_data)
+
 
