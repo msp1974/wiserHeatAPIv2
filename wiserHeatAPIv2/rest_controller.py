@@ -175,7 +175,7 @@ class _WiserRestController(object):
         )
         return self._do_hub_action(action, url, schedule_data)
 
-    def _send_schedule_command(self, action: str, schedule_data: dict, id: int = 0) -> bool:
+    def _send_schedule_command(self, action: str, schedule_data: dict, id: int = 0, schedule_type: str = None) -> bool:
         """
         Send schedule data to Wiser Hub
         param schedule_data: json schedule data
@@ -185,7 +185,7 @@ class _WiserRestController(object):
         if action == "UPDATE":
             result = self._do_schedule_action(
                 WiserRestActionEnum.PATCH,
-                "{}/{}".format(self._type, str(id if id != 0 else self.id)),
+                "{}/{}".format(schedule_type, id),
                 schedule_data,
             )
 
@@ -206,7 +206,7 @@ class _WiserRestController(object):
         elif action == "DELETE":
             result = self._do_schedule_action(
                 WiserRestActionEnum.DELETE,
-                "{}/{}".format(self._type, str(id if id != 0 else self.id)),
+                "{}/{}".format(schedule_type, id),
                 schedule_data,
             )
         return result
