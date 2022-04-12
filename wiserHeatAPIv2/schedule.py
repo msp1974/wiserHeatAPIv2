@@ -456,7 +456,7 @@ class _WiserLevelSchedule(_WiserSchedule):
             device_ids = device_ids + self.device_ids
         schedule_data = {
             "Assignments": list(set(device_ids)),
-            self.schedule_type:
+            self._type:
                 {
                     "id": self.id
                 }
