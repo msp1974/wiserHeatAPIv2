@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.27
+# Drayton Wiser Hub API v2 v0.0.28
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -150,3 +150,6 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Added detected_networks property to system.network object
 - Added connect_to_network method to allow changing wifi connection on hub
 - Removed unused get_by_room_name on device s collection
+
+### 0.0.28
+- Fix issue assigning existing schedules to Level devices - Issue #12

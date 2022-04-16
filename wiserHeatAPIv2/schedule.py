@@ -456,7 +456,7 @@ class _WiserLevelSchedule(_WiserSchedule):
             device_ids = device_ids + self.device_ids
         schedule_data = {
             "Assignments": list(set(device_ids)),
-            self.schedule_type:
+            self._type:
                 {
                     "id": self.id
                 }
@@ -690,11 +690,7 @@ class _WiserScheduleCollection(object):
         param schedule_type: type of schedule to create
         param name: name of schedule
         param assignments: optional - assign new schedule to list of rooms or devices
-        param schedule_data: optional - the schedule data to create schedule with.  Leaving blank creates default schedule
         """
-        if schedule_type in [WiserScheduleTypeEnum.lighting, WiserScheduleTypeEnum.shutters]:
-            schedule_type = WiserScheduleTypeEnum.level
-
         schedule_data = {
             "Assignments": assignments,
             schedule_type.value:
