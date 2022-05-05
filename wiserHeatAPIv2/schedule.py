@@ -156,9 +156,7 @@ class _WiserSchedule(object):
 
     @property
     def schedule_type(self) -> str:
-        """Get schedule type (heating, on/off or level (lighting, shutters))"""
-        if self._type == TEXT_LEVEL:
-            return self._schedule_data.get("Type", TEXT_UNKNOWN)
+        """Get schedule type (heating, on/off or level)"""
         return self._type
 
     def copy_schedule(self, to_id: int) -> bool:
@@ -297,7 +295,8 @@ class _WiserHeatingSchedule(_WiserSchedule):
             "Assignments": list(set(room_ids)),
             self.schedule_type:
                 {
-                    "id": self.id
+                    "id": self.id,
+                    "Name": self.name
                 }
             }
 
@@ -375,7 +374,8 @@ class _WiserOnOffSchedule(_WiserSchedule):
             "Assignments": list(set(device_ids)),
             self.schedule_type:
                 {
-                    "id": self.id
+                    "id": self.id,
+                    "Name": self.name
                 }
             }
 
@@ -444,6 +444,11 @@ class _WiserLevelSchedule(_WiserSchedule):
         """Get schedule type level sub type"""
         return self._schedule_data.get("Type", TEXT_UNKNOWN)
 
+    @property
+    def schedule_level_type_id(self) -> int:
+        """Get the schedule level type id"""
+        return (2 if self.schedule_level_type == WiserScheduleTypeEnum.shutters.value else 1)
+
     def assign_schedule(self, device_ids: list, include_current: bool = True) -> bool:
         """
         Assign schedule to devices
@@ -454,12 +459,16 @@ class _WiserLevelSchedule(_WiserSchedule):
             device_ids = [device_ids]
         if include_current:
             device_ids = device_ids + self.device_ids
+        
+        type_data = {
+                    "id": self.id,
+                    "Name": self.name,
+                    "Type": self.schedule_level_type_id,
+        }
+        type_data.update(self.schedule_data)
         schedule_data = {
             "Assignments": list(set(device_ids)),
-            self._type:
-                {
-                    "id": self.id
-                }
+            self._type: type_data
             }
 
         try:
@@ -691,12 +700,15 @@ class _WiserScheduleCollection(object):
         param name: name of schedule
         param assignments: optional - assign new schedule to list of rooms or devices
         """
+        type_data = {"Name": name}
+        if schedule_type in [WiserScheduleTypeEnum.lighting, WiserScheduleTypeEnum.level]:
+            type_data.update({"Type": 1})
+        if schedule_type == WiserScheduleTypeEnum.shutters:
+            type_data.update({"Type": 2})
+
         schedule_data = {
             "Assignments": assignments,
-            schedule_type.value:
-                {
-                    "Name": name
-                }
+            schedule_type.value: type_data
             }
 
         self._send_schedule_command("CREATE", schedule_data)
