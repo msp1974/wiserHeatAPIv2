@@ -32,12 +32,14 @@ class _WiserSystem(object):
         wiser_rest_controller: _WiserRestController, 
         domain_data: dict, 
         network_data: dict,
-        device_data: dict
+        device_data: dict,
+        operational_data: dict
     ):
 
         self._wiser_rest_controller = wiser_rest_controller
         self._data = domain_data
         self._system_data = domain_data.get("System",{})
+        self._operational_data = operational_data
 
         # Sub classes for system setting values
         self._capability_data = _WiserHubCapabilitiesInfo(self._data.get("DeviceCapabilityMatrix",{}))
@@ -254,6 +256,21 @@ class _WiserSystem(object):
     def node_id(self) -> int:
         """Get zigbee node id of device"""
         return self._device_data.get("NodeId", 0)
+
+    @property
+    def opentherm_ch_pressure_bar(self) -> str:
+        """Get ChPressureBar operationalData"""
+        return self._operational_data.get("ChPressureBar", TEXT_UNKNOWN)
+
+    @property
+    def opentherm_ch_flow_temperature(self) -> str:
+        """Get Ch1FlowTemperature operationalData"""
+        return self._operational_data.get("Ch1FlowTemperature", TEXT_UNKNOWN)
+
+    @property
+    def opentherm_ch_return_temperature(self) -> str:
+        """Get ChReturnTemperature operationalData"""
+        return self._operational_data.get("ChReturnTemperature", TEXT_UNKNOWN)
 
     @property
     def opentherm_connection_status(self) -> str:

@@ -32,7 +32,8 @@ from .const import (
     WiserUnitsEnum,
     WISERHUBDOMAIN,
     WISERHUBNETWORK,
-    WISERHUBSCHEDULES
+    WISERHUBSCHEDULES,
+    WISERHUBOPENTHERM
 )
 
 from .exceptions import (
@@ -75,6 +76,7 @@ class WiserAPI(object):
         self._rooms = None
         self._schedules = None
         self._system = None
+        self._opentherm = None
 
         # Log initialisation info
         _LOGGER.info(f"WiserHub API v{__VERSION__} Initialised - Host: {host}, Units: {self._wiser_api_connection.units.name.title()}")
@@ -98,6 +100,7 @@ class WiserAPI(object):
         _domain_data = self._wiser_rest_controller._get_hub_data(WISERHUBDOMAIN)
         _network_data = self._wiser_rest_controller._get_hub_data(WISERHUBNETWORK)
         _schedule_data = self._wiser_rest_controller._get_hub_data(WISERHUBSCHEDULES)
+        _opentherm_data = self._wiser_rest_controller._get_hub_data(WISERHUBOPENTHERM)
 
         if _domain_data != {} and _network_data != {} and _schedule_data != {}:
 
@@ -106,7 +109,8 @@ class WiserAPI(object):
 
             # System Object
             _device_data = _domain_data.get("Device", [])
-            self._system = _WiserSystem(self._wiser_rest_controller, _domain_data, _network_data, _device_data)
+            _operational_data = _opentherm_data.get("operationalData")
+            self._system = _WiserSystem(self._wiser_rest_controller, _domain_data, _network_data, _device_data, _operational_data)
 
             # Devices Collection
             self._devices = _WiserDeviceCollection(self._wiser_rest_controller, _domain_data, self._schedules )
