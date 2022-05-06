@@ -132,7 +132,7 @@ class _WiserRestController(object):
             )
         elif response.status_code == 404 and raise_for_endpoint_error:
             raise WiserHubRESTError(
-                f"Rest endpoint not found on Wiser Hub {self._wiser_connection.host}. {response.text} -- {raise_for_endpoint_error}"
+                f"Rest endpoint not found on Wiser Hub {self._wiser_connection.host}"
             )
         elif response.status_code == 408:
             raise WiserHubConnectionError(
