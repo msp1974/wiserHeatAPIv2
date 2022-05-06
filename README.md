@@ -158,3 +158,6 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Amend json data sent when creating or assigning schedules
 - Add schedule_level_type_id property
 - Amend schedule_type to be Level for all level schedules
+- Add system.opentherm property class - Issue #15
+- Amend system.opentherm_connection status to be system.opentherm.connection_status
+- Fix error if device does not report RSSI
