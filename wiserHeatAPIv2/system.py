@@ -8,6 +8,7 @@ from .helpers import (
     _WiserGPS,
     _WiserHubCapabilitiesInfo,
     _WiserNetwork,
+    _WiserOpentherm,
     _WiserSignalStrength,
     _WiserZigbee
 )
@@ -32,20 +33,21 @@ class _WiserSystem(object):
         wiser_rest_controller: _WiserRestController, 
         domain_data: dict, 
         network_data: dict,
-        device_data: dict
+        device_data: dict,
+        opentherm_data: dict
     ):
 
         self._wiser_rest_controller = wiser_rest_controller
         self._data = domain_data
-        self._system_data = domain_data.get("System",{})
+        self._system_data = self._data.get("System",{})
 
         # Sub classes for system setting values
         self._capability_data = _WiserHubCapabilitiesInfo(self._data.get("DeviceCapabilityMatrix",{}))
         self._cloud_data = _WiserCloud(self._system_data.get("CloudConnectionStatus"), self._data.get("Cloud",{}))
         self._device_data = self._get_system_device(device_data)
         self._network_data = _WiserNetwork(network_data.get("Station", {}))
+        self._opentherm_data = _WiserOpentherm(opentherm_data, self._system_data.get("OpenThermConnectionStatus", TEXT_UNKNOWN))
         self._signal = _WiserSignalStrength(self._device_data)
-        self._system_data = self._data.get("System",{})
         self._upgrade_data = _WiserFirmareUpgradeInfo(self._data.get("UpgradeInfo",{}))
         self._zigbee_data = _WiserZigbee( self._data.get("Zigbee",{}))
 
@@ -256,9 +258,9 @@ class _WiserSystem(object):
         return self._device_data.get("NodeId", 0)
 
     @property
-    def opentherm_connection_status(self) -> str:
-        """Get opentherm connection status"""
-        return self._system_data.get("OpenThermConnectionStatus", TEXT_UNKNOWN)
+    def opentherm(self) -> _WiserOpentherm:
+        """Get opentherm info"""
+        return self._opentherm_data
 
     @property
     def pairing_status(self) -> str:

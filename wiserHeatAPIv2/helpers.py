@@ -195,7 +195,9 @@ class _WiserSignalStrength(object):
     @property
     def device_signal_strength(self) -> int:
         """Get the signal strength percent for the device"""
-        return min(100, int(2 * (self.device_reception_rssi + 100))) if self.device_reception_rssi != 0 else 0
+        if self.device_reception_rssi:
+            return min(100, int(2 * (self.device_reception_rssi + 100))) if self.device_reception_rssi != 0 else 0
+        return None
 
 
 class _WiserDetectedNetwork:
@@ -359,6 +361,33 @@ class _WiserCloud:
     def diagnostic_telemetry_enabled(self) -> bool:
         """Get if diagnostic telemetry is enabled"""
         return self._data.get("EnableDiagnosticTelemetry", False)
+
+class _WiserOpentherm:
+    """Data structure for Opentherm data"""
+    def __init__(self, data: dict, enabled_status: str):
+        self._data = data
+        self._enabled_status = enabled_status
+        self._operational_data = data.get("operationalData", {})
+
+    @property
+    def ch_pressure_bar(self) -> str:
+        """Get ChPressureBar operationalData"""
+        return self._operational_data.get("ChPressureBar", TEXT_UNKNOWN)
+
+    @property
+    def ch_flow_temperature(self) -> str:
+        """Get Ch1FlowTemperature operationalData"""
+        return self._operational_data.get("Ch1FlowTemperature", TEXT_UNKNOWN)
+
+    @property
+    def ch_return_temperature(self) -> str:
+        """Get ChReturnTemperature operationalData"""
+        return self._operational_data.get("ChReturnTemperature", TEXT_UNKNOWN)
+
+    @property
+    def connection_status(self) -> str:
+        """Get opentherm connection status"""
+        return self._enabled_status
 
 
 class _WiserZigbee:

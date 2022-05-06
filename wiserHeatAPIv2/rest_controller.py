@@ -65,7 +65,7 @@ class _WiserRestController(object):
         logging.getLogger('urllib3.connectionpool').setLevel(logging.CRITICAL)
         logging.getLogger('urllib3.util.retry').setLevel(logging.CRITICAL)
 
-    def _do_hub_action(self, action: WiserRestActionEnum, url: str, data: dict = None):
+    def _do_hub_action(self, action: WiserRestActionEnum, url: str, data: dict = None, raise_for_endpoint_error: bool = True):
         """
         Send patch update to hub and raise errors if fails
         param url: url of hub rest api endpoint
@@ -98,7 +98,7 @@ class _WiserRestController(object):
                 )
 
             if not response.ok:
-                self._process_nok_response(response)
+                self._process_nok_response(response, raise_for_endpoint_error)
             else:
                 if action == WiserRestActionEnum.GET:
                     if len(response.content) > 0:
@@ -125,12 +125,12 @@ class _WiserRestController(object):
                 f"Connection error trying to communicate with Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
             )
    
-    def _process_nok_response(self, response):
+    def _process_nok_response(self, response, raise_for_endpoint_error: bool = True):
         if response.status_code == 401:
             raise WiserHubAuthenticationError(
                 f"Error authenticating to Wiser Hub {self._wiser_connection.host}.  Check your secret key"
             )
-        elif response.status_code == 404:
+        elif response.status_code == 404 and raise_for_endpoint_error:
             raise WiserHubRESTError(
                 f"Rest endpoint not found on Wiser Hub {self._wiser_connection.host}"
             )
@@ -138,14 +138,14 @@ class _WiserRestController(object):
             raise WiserHubConnectionError(
                 f"Connection timed out trying to communicate with Wiser Hub {self._wiser_connection.host}"
             )
-        else:
+        elif raise_for_endpoint_error:
             raise WiserHubRESTError(
                 f"Unknown error getting communicating with Wiser Hub {self._wiser_connection.host}.  Error code is: {response.status_code}"
             )
 
-    def _get_hub_data(self, url:str):
+    def _get_hub_data(self, url:str, raise_for_endpoint_error: bool = True):
         """Get data from hub"""
-        return self._do_hub_action(WiserRestActionEnum.GET ,url)
+        return self._do_hub_action(WiserRestActionEnum.GET ,url, raise_for_endpoint_error=raise_for_endpoint_error)
 
     def _send_command(self, url: str, command_data: dict, method: WiserRestActionEnum = WiserRestActionEnum.PATCH):
         """

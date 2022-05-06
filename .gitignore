@@ -11,3 +11,4 @@ params.py
 venv
 tests/test_yaml.py
 tests/test_api_schedule.py
+tests/test_zigbee.py
