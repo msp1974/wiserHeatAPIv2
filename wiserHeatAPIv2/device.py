@@ -1,5 +1,5 @@
 from .const import TEXT_UNKNOWN
-from .helpers import _WiserSignalStrength
+from .helpers.signal import _WiserSignalStrength
 
 class _WiserDevice(object):
     """Class representing a wiser heating device"""
@@ -7,6 +7,11 @@ class _WiserDevice(object):
     def __init__(self, data: dict):
         self._data = data
         self._signal = _WiserSignalStrength(data)
+
+    @property
+    def device_type_id(self) -> int:
+        """Get the device id for the specific device type"""
+        return self._data.get("id")
 
     @property
     def firmware_version(self) -> str:
@@ -71,9 +76,9 @@ class _WiserElectricalDevice(_WiserDevice):
         super().__init__(data)
 
     @property
-    def id(self) -> int:
-        """Get id of device"""
-        return self._device_type_data.get("DeviceId")
+    def device_type_id(self) -> int:
+        """Get the device id for the specific device type"""
+        return self._device_type_data.get("id")
 
     # Lights and shutters currently have model identifier as Unknowm
     @property

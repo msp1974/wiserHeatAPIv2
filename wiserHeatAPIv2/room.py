@@ -2,7 +2,7 @@ from . import _LOGGER
 import enum
 
 from .devices import _WiserDeviceCollection
-from .helpers import _WiserTemperatureFunctions as tf
+from .helpers.temp import _WiserTemperatureFunctions as tf
 from .schedule import _WiserSchedule, _WiserScheduleCollection, WiserScheduleTypeEnum
 from .rest_controller import _WiserRestController, WiserRestActionEnum
 
