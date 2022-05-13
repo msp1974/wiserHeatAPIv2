@@ -2,7 +2,6 @@ from . import _LOGGER
 import enum
 
 from .device import _WiserElectricalDevice
-from .helpers import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
@@ -66,7 +65,7 @@ class _WiserShutter(_WiserElectricalDevice):
         
         # Add device id to schedule
         if self._schedule:
-            self.schedule._device_ids.append(self.id)
+            self.schedule._device_ids.append(self.device_type_id)
 
 
     def _send_command(self, cmd: dict, device_level: bool = False):
