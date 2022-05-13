@@ -353,11 +353,21 @@ class _WiserOnOffSchedule(_WiserSchedule):
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data)
         self._device_ids = []
+        self._device_type_ids = []
 
     @property
     def device_ids(self):
         """Get ids of devices schedule attached to"""
         return self._device_ids
+
+    @property
+    def device_type_ids(self):
+        """
+        Get device type ids of devices schedule attached to.
+        Lights and Shutters have 2 ids and need to use Light ID or Shutter ID for schedule control
+        Smartplugs will have same id as device id
+        """
+        return self._device_type_ids
 
     def assign_schedule(self, device_ids: list, include_current: bool = True) -> bool:
         """
@@ -432,6 +442,7 @@ class _WiserLevelSchedule(_WiserSchedule):
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data)
         self._device_ids = []
+        self._device_type_ids = []
 
     @property
     def device_ids(self):
@@ -439,14 +450,22 @@ class _WiserLevelSchedule(_WiserSchedule):
         return self._device_ids
 
     @property
-    def schedule_level_type(self) -> str:
+    def device_type_ids(self):
+        """
+        Get device type ids of devices schedule attached to.
+        Lights and Shutters have 2 ids and need to use Light ID or Shutter ID for schedule control
+        """
+        return self._device_type_ids
+
+    @property
+    def level_type(self) -> str:
         """Get schedule type level sub type"""
         return self._schedule_data.get("Type", TEXT_UNKNOWN)
 
     @property
-    def schedule_level_type_id(self) -> int:
+    def level_type_id(self) -> int:
         """Get the schedule level type id"""
-        return (2 if self.schedule_level_type == WiserScheduleTypeEnum.shutters.value else 1)
+        return (2 if self.level_type == WiserScheduleTypeEnum.shutters.value else 1)
 
     def assign_schedule(self, device_ids: list, include_current: bool = True) -> bool:
         """
@@ -457,12 +476,12 @@ class _WiserLevelSchedule(_WiserSchedule):
         if not isinstance(device_ids, list):
             device_ids = [device_ids]
         if include_current:
-            device_ids = device_ids + self.device_ids
+            device_ids = device_ids + self.device_type_ids
         
         type_data = {
                     "id": self.id,
                     "Name": self.name,
-                    "Type": self.schedule_level_type_id,
+                    "Type": self.level_type_id,
         }
         type_data.update(self.schedule_data)
         schedule_data = {
@@ -634,13 +653,13 @@ class _WiserScheduleCollection(object):
 
     def get_by_room_id(self, room_id: int) -> list:
         try:
-            return [schedule for schedule in self._heating_schedules if schedule.room_id == room_id][0]
+            return [schedule for schedule in self._heating_schedules if room_id in [schedule.room_ids]][0]
         except IndexError:
             return None
 
     def get_by_device_id(self, device_id: int) -> list:
         try:
-            return [schedule for schedule in self._onoff_schedules + self._level_schedules if schedule.device_id == device_id][0]
+            return [schedule for schedule in self._onoff_schedules + self._level_schedules if device_id in [schedule.device_ids]][0]
         except IndexError:
             return None
 
