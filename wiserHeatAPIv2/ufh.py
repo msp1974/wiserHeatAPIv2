@@ -1,7 +1,7 @@
 from . import _LOGGER
 
 from .device import _WiserDevice
-from .helpers import _WiserTemperatureFunctions as tf
+from .helpers.temp import _WiserTemperatureFunctions as tf
 from .rest_controller import _WiserRestController
 
 from .const import TEMP_MAXIMUM, TEMP_MINIMUM, TEMP_OFF, TEXT_UNKNOWN, WISERUFHCONTROLLER, WISERDEVICE

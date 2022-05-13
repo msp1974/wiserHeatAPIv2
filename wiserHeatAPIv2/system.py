@@ -1,17 +1,15 @@
 from . import _LOGGER
 
 from .device import _WiserSignalStrength
-from .helpers import (
-    _WiserTemperatureFunctions as tf,
-    _WiserCloud,
-    _WiserFirmareUpgradeInfo,
-    _WiserGPS,
-    _WiserHubCapabilitiesInfo,
-    _WiserNetwork,
-    _WiserOpentherm,
-    _WiserSignalStrength,
-    _WiserZigbee
-)
+from .helpers.temp import _WiserTemperatureFunctions as tf
+from .helpers.cloud import _WiserCloud
+from .helpers.firmware import _WiserFirmareUpgradeInfo
+from .helpers.gps import _WiserGPS
+from .helpers.capabilities import _WiserHubCapabilitiesInfo
+from .helpers.network import _WiserNetwork
+from .helpers.opentherm import _WiserOpentherm
+from .helpers.signal import _WiserSignalStrength
+from .helpers.zigbee import _WiserZigbee
 from .rest_controller import _WiserRestController
 
 from .const import (
