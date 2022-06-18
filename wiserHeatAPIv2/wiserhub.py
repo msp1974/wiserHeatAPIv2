@@ -2,8 +2,6 @@
 """
 # Wiser API Version 2
 
-Tested in WiserHub version 3.8.8
-
 angelosantagata@gmail.com
 msparker@sky.com
 

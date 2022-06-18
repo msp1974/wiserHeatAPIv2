@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="wiserHeatAPIv2", # Replace with your own username
-    version="0.0.31",
+    version="0.0.32",
     author="Mark Parker",
     author_email="msparker@sky.com",
     description="An API for controlling the Drayton Wiser Heating system",
