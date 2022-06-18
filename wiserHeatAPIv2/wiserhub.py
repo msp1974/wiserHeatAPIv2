@@ -2,8 +2,6 @@
 """
 # Wiser API Version 2
 
-Tested in WiserHub version 3.8.8
-
 angelosantagata@gmail.com
 msparker@sky.com
 
@@ -103,12 +101,12 @@ class WiserAPI(object):
 
         if _domain_data != {} and _network_data != {} and _schedule_data != {}:
 
-            # Schedules Collection
-            self._schedules = _WiserScheduleCollection(self._wiser_rest_controller, _schedule_data)
-
             # System Object
             _device_data = _domain_data.get("Device", [])
             self._system = _WiserSystem(self._wiser_rest_controller, _domain_data, _network_data, _device_data, _opentherm_data)
+
+            # Schedules Collection
+            self._schedules = _WiserScheduleCollection(self._wiser_rest_controller, _schedule_data, self._system.sunrise_times, self._system.sunset_times)
 
             # Devices Collection
             self._devices = _WiserDeviceCollection(self._wiser_rest_controller, _domain_data, self._schedules )

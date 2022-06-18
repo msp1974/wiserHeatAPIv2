@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.31
+# Drayton Wiser Hub API v2 v0.0.32
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -168,3 +168,9 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Rename schedule.schedule_level_type_id to schedule.level_type
 - Restructure opentherm helper and add properties
 - Add device_type_ids to schedules
+
+### 0.0.32
+- Added special times support
+- Amended TRV battery percentage logic
+- Reordered when schedule object gets created
+- Fixed error in controller signal strength
