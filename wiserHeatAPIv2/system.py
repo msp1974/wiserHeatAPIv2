@@ -9,6 +9,7 @@ from .helpers.capabilities import _WiserHubCapabilitiesInfo
 from .helpers.network import _WiserNetwork
 from .helpers.opentherm import _WiserOpentherm
 from .helpers.signal import _WiserSignalStrength
+from .helpers.special_times import sunrise_times, sunset_times
 from .helpers.zigbee import _WiserZigbee
 from .rest_controller import _WiserRestController
 
@@ -279,6 +280,16 @@ class _WiserSystem(object):
     def signal(self) -> _WiserSignalStrength:
         """Get zwave network information"""
         return self._signal
+
+    @property
+    def sunrise_times(self) -> list:
+        """Get sunrise times"""
+        return sunrise_times(self._system_data.get("SunriseTimes",[]))
+
+    @property
+    def sunset_times(self) -> list:
+        """Get sunset times"""
+        return sunset_times(self._system_data.get("SunsetTimes",[]))
 
     @property
     def system_mode(self) -> str:
