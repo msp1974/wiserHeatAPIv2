@@ -45,7 +45,7 @@ class _WiserSmartPlug(_WiserDevice):
 
         # Add device id to schedule
         if self._schedule:
-            self.schedule._device_ids.append(self.id)
+            self.schedule._assignments.append({"id": self.id, "name": self.name})
             self.schedule._device_type_ids.append(self.id)
 
     def _send_command(self, cmd: dict, device_level: bool = False):

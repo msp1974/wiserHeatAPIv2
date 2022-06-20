@@ -65,8 +65,8 @@ class _WiserShutter(_WiserElectricalDevice):
         
         # Add device id to schedule
         if self._schedule:
-            self.schedule._device_ids.append(self.id)
-            self.schedule._device_type_ids.append(self.shutter_id)
+            self.schedule._assignments.append({"id": self.shutter_id, "name": self.name})
+            self.schedule._device_type_ids.append(self.id)
 
 
     def _send_command(self, cmd: dict, device_level: bool = False):
