@@ -34,19 +34,7 @@ class _WiserBattery(object):
                 )
             )
         elif self._data.get("ProductType") == "iTRV" and self.level != "No Battery":
-            return TRV_BATTERY_LEVEL_MAPPING.get(self.voltage, 0)
-            """
-            Old version - remove if working ok
-            return percentage_clip(
-                round(
-                    (
-                        (self.voltage - TRV_MIN_BATTERY_LEVEL)
-                        / (TRV_FULL_BATTERY_LEVEL - TRV_MIN_BATTERY_LEVEL)
-                    )
-                    * 100
-                )
-            )
-            """
+            return TRV_BATTERY_LEVEL_MAPPING.get(self.voltage, 0) if self.voltage < TRV_FULL_BATTERY_LEVEL else 100
         else:
             return 0
 
