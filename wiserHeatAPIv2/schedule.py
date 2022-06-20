@@ -8,7 +8,7 @@ from ruamel.yaml import YAML
 
 from . import _LOGGER
 from .const import (SPECIAL_DAYS, SPECIAL_TIMES, TEMP_MINIMUM, TEMP_OFF, TEXT_DEGREESC,
-                    TEXT_HEATING, TEXT_LEVEL, TEXT_LIGHTING, TEXT_OFF, TEXT_ON, TEXT_ONOFF, TEXT_SHUTTERS, TEXT_STATE,
+                    TEXT_HEATING, TEXT_LEVEL, TEXT_LIGHTING, TEXT_OFF, TEXT_ON, TEXT_ONOFF, TEXT_SETPOINT, TEXT_SHUTTERS, TEXT_STATE,
                     TEXT_TEMP, TEXT_TIME, TEXT_UNKNOWN, TEXT_WEEKDAYS,
                     TEXT_WEEKENDS, WEEKDAYS, WEEKENDS)
 from .helpers.temp import _WiserTemperatureFunctions as tf
@@ -30,9 +30,10 @@ class _WiserSchedule(object):
         self._schedule_data = schedule_data
         self._sunrises = sunrises
         self._sunsets = sunsets
+        self._assignments = []
 
     def _validate_schedule_type(self, schedule_data: dict) -> bool:
-        return True if schedule_data.get("Type", None) == self.schedule_type else False
+        return True if schedule_data.get("Type", None) == self.schedule_type or schedule_data.get("SubType", None) == self.schedule_type  else False
 
     def _is_valid_time(self, time_value: str) -> bool:
         try:
@@ -47,13 +48,13 @@ class _WiserSchedule(object):
         return schedule_data
 
     def _remove_schedule_elements(self, schedule_data: dict) -> dict:
-        remove_list = ["id", "CurrentSetpoint", "CurrentState", "CurrentLevel", "Name", "Next", "Type"]
+        remove_list = ["id", "CurrentSetpoint", "CurrentState", "Description", "CurrentLevel", "Name", "Next", "Type"]
         for item in remove_list:
             if item in schedule_data:
                 del schedule_data[item]
         return schedule_data
 
-    def _convert_from_wiser_schedule(self, schedule_data: dict, replace_special_times: bool = False) -> dict:
+    def _convert_from_wiser_schedule(self, schedule_data: dict, replace_special_times: bool = False, generic_setpoint: bool = False) -> dict:
         """
         Convert from wiser format to format suitable for yaml output
         param: scheduleData
@@ -70,7 +71,7 @@ class _WiserSchedule(object):
             for day, sched in schedule_data.items():
                 if day.title() in (WEEKDAYS + WEEKENDS + SPECIAL_DAYS):
                     schedule_set_points = self._convert_wiser_to_yaml_day(
-                        day, sched, replace_special_times
+                        day, sched, replace_special_times, generic_setpoint
                     )
                     schedule_output.update({day.capitalize(): schedule_set_points})
             return schedule_output
@@ -78,7 +79,7 @@ class _WiserSchedule(object):
             _LOGGER.error(f"Error converting from Wiser schedule: {ex}")
             return None
 
-    def _convert_to_wiser_schedule(self, schedule_yaml_data: dict) -> dict:
+    def _convert_to_wiser_schedule(self, schedule_data: dict) -> dict:
         """
         Convert from wiser format to format suitable for yaml output
         param: scheduleData
@@ -86,7 +87,7 @@ class _WiserSchedule(object):
         """
         schedule_output = {}
         try:
-            for day, sched in schedule_yaml_data.items():
+            for day, sched in schedule_data.items():
                 if day.title() in (WEEKDAYS + WEEKENDS + SPECIAL_DAYS):
                     schedule_day = self._convert_yaml_to_wiser_day(sched)
                     # If using spec days, convert to one entry for each weekday
@@ -118,6 +119,23 @@ class _WiserSchedule(object):
         except Exception as ex:
             _LOGGER.debug(ex)
             raise
+
+    @property
+    def assignments(self):
+        """Get ids and names of rooms/devices schedule assigned to"""
+        return self._assignments
+
+    @property
+    def assignment_ids(self):
+        if self._assignments:
+            return [assignment.get("id") for assignment in self._assignments]
+        return []
+
+    @property
+    def assignment_names(self):
+        if self._assignments:
+            return [assignment.get("name") for assignment in self._assignments]
+        return []
 
     @property
     def current_setting(self) -> str:
@@ -154,6 +172,19 @@ class _WiserSchedule(object):
     def schedule_data(self) -> str:
         """Get json output of schedule data"""
         return self._remove_schedule_elements(self._schedule_data.copy())
+
+    @property
+    def ws_schedule_data(self) -> dict:
+        """Get formatted schedule data for webservice support"""
+        s = self._remove_schedule_elements(self._convert_from_wiser_schedule(self._remove_schedule_elements(self._schedule_data.copy()), replace_special_times=True, generic_setpoint=True))
+        return {
+            "Id": self.id,
+            "Name": self.name,
+            "Type": self._type,
+            "SubType": self.schedule_type,
+            "Assignments": self.assignments,
+            "ScheduleData": [{"day": a, "slots": s.get(a)} for a in s]
+        }
 
     @property
     def schedule_type(self) -> str:
@@ -270,17 +301,30 @@ class _WiserSchedule(object):
             _LOGGER.error(f"Error setting schedule from yaml file: {ex}")
             return False
 
+    def set_schedule_from_ws_data(self, schedule_data: dict) -> bool:
+        """
+        Set schedule from websocket data.
+        param schedule: data respresenting a schedule
+        return: boolen - true = successfully set, false = failed to set
+        """
+        try:
+            if self._validate_schedule_type(schedule_data):
+                schedule_json = {}
+                for entry in schedule_data.get("ScheduleData"):
+                    schedule_json.update({entry.get("day"): entry.get("slots")})
+                schedule = self._convert_to_wiser_schedule(schedule_json)
+                self.set_schedule(schedule)
+                return True
+            else:
+                _LOGGER.error(f"{schedule_data.get('Type', TEXT_UNKNOWN)} is an incorrect schedule type for this device.  It should be a {self.schedule_type} schedule.")
+        except Exception as ex:
+            _LOGGER.error(f"Error setting schedule from websocket data: {ex}")
+            return False
 
 class _WiserHeatingSchedule(_WiserSchedule):
     """ Class for Wiser Heating Schedule """
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict, sunrises, sunsets):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data, sunrises, sunsets)
-        self._room_ids = []
-
-    @property
-    def room_ids(self):
-        """Get ids of rooms schedule attached to"""
-        return self._room_ids
 
     def assign_schedule(self, room_ids: list, include_current: bool = True) -> bool:
         """
@@ -291,7 +335,7 @@ class _WiserHeatingSchedule(_WiserSchedule):
         if not isinstance(room_ids, list):
             room_ids = [room_ids]
         if include_current:
-            room_ids = room_ids + self.room_ids
+            room_ids = room_ids + self.assignment_ids
         schedule_data = {
             "Assignments": list(set(room_ids)),
             self.schedule_type:
@@ -312,12 +356,12 @@ class _WiserHeatingSchedule(_WiserSchedule):
             room_ids = [room_ids]
         
         remaining_rooms_ids = []
-        if room_ids and self.room_ids:
-            remaining_rooms_ids = [room_id for room_id in self.room_ids if room_id not in room_ids]
+        if room_ids and self.assignment_ids:
+            remaining_rooms_ids = [room_id for room_id in self.assignment_ids if room_id not in room_ids]
         self.assign_schedule(remaining_rooms_ids, False)
 
 
-    def _convert_wiser_to_yaml_day(self, day, day_schedule, replace_special_times: bool = False) -> list:
+    def _convert_wiser_to_yaml_day(self, day, day_schedule, replace_special_times: bool = False, generic_setpoint: bool = False) -> list:
         """
         Convert from wiser schedule format to format for yaml output.
         param daySchedule: json schedule for a day in wiser v2 format
@@ -332,7 +376,7 @@ class _WiserHeatingSchedule(_WiserSchedule):
                             format(day_schedule[TEXT_TIME][i], "04d"), "%H%M"
                         )
                     ).strftime("%H:%M"),
-                    TEXT_TEMP: tf._from_wiser_temp(day_schedule[TEXT_DEGREESC][i]),
+                    (TEXT_SETPOINT if generic_setpoint else TEXT_TEMP): tf._from_wiser_temp(day_schedule[TEXT_DEGREESC][i]),
                 }
             )
         return sorted(schedule_set_points, key=lambda t: t['Time'])
@@ -351,9 +395,9 @@ class _WiserHeatingSchedule(_WiserSchedule):
                 if key.title() == TEXT_TIME:
                     time = str(value).replace(":", "")
                     times.append(time)
-                if key.title() == TEXT_TEMP:
+                if key.title() in [TEXT_TEMP, TEXT_SETPOINT]:
                     temp = tf._to_wiser_temp(
-                        value if str(value).title() != TEXT_OFF else TEMP_OFF
+                        float(value) if str(value).title() != TEXT_OFF else TEMP_OFF
                     )
                     temps.append(temp)
         return {TEXT_TIME: times, TEXT_DEGREESC: temps}
@@ -363,13 +407,7 @@ class _WiserOnOffSchedule(_WiserSchedule):
     """ Class for Wiser OnOff Schedule """# System Object
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict, sunrises, sunsets):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data, sunrises, sunsets)
-        self._device_ids = []
         self._device_type_ids = []
-
-    @property
-    def device_ids(self):
-        """Get ids of devices schedule attached to"""
-        return self._device_ids
 
     @property
     def device_type_ids(self):
@@ -389,7 +427,7 @@ class _WiserOnOffSchedule(_WiserSchedule):
         if not isinstance(device_ids, list):
             device_ids = [device_ids]
         if include_current:
-            device_ids = device_ids + self.device_ids
+            device_ids = device_ids + self.assignment_ids
         schedule_data = {
             "Assignments": list(set(device_ids)),
             self.schedule_type:
@@ -410,11 +448,11 @@ class _WiserOnOffSchedule(_WiserSchedule):
             device_ids = [device_ids]
 
         remaining_device_ids = []
-        if device_ids and self.device_ids:
-                remaining_device_ids = [device_id for device_id in self.device_ids if device_id not in device_ids]
+        if device_ids and self.assignment_ids:
+                remaining_device_ids = [device_id for device_id in self.assignment_ids if device_id not in device_ids]
         self.assign_schedule(remaining_device_ids, False)
 
-    def _convert_wiser_to_yaml_day(self, day, day_schedule, replace_special_times: bool = False) -> list:
+    def _convert_wiser_to_yaml_day(self, day, day_schedule, replace_special_times: bool = False, generic_setpoint: bool = False) -> list:
         """
         Convert from wiser schedule format to format for yaml output.
         param daySchedule: json schedule for a day in wiser v2 format
@@ -429,7 +467,7 @@ class _WiserOnOffSchedule(_WiserSchedule):
                             format(abs(day_schedule[i]), "04d"), "%H%M"
                         )
                     ).strftime("%H:%M"),
-                    TEXT_STATE: TEXT_ON if day_schedule[i] > 0 else TEXT_OFF,
+                    (TEXT_SETPOINT if generic_setpoint else TEXT_STATE): TEXT_ON if day_schedule[i] > 0 else TEXT_OFF,
                 }
             )
         return sorted(schedule_set_points, key=lambda t: t['Time'])
@@ -448,7 +486,7 @@ class _WiserOnOffSchedule(_WiserSchedule):
                     time = int(str(entry.get("Time")).replace(":", ""))
                 else:
                     time = 0
-                if entry.get("State").title() == TEXT_OFF:
+                if entry.get("State", entry.get(TEXT_SETPOINT)).title() == TEXT_OFF:
                     time = 0 - int(time)
             except Exception as ex:
                 _LOGGER.debug(ex)
@@ -461,13 +499,7 @@ class _WiserLevelSchedule(_WiserSchedule):
     """ Class for Wiser Level Schedule """
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict, sunrises, sunsets):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data, sunrises, sunsets)
-        self._device_ids = []
         self._device_type_ids = []
-
-    @property
-    def device_ids(self):
-        """Get ids of devices schedule attached to"""
-        return self._device_ids
 
     @property
     def device_type_ids(self):
@@ -486,6 +518,11 @@ class _WiserLevelSchedule(_WiserSchedule):
     def level_type_id(self) -> int:
         """Get the schedule level type id"""
         return (2 if self.level_type == WiserScheduleTypeEnum.shutters.value else 1)
+
+    @property
+    def schedule_type(self) -> str:
+        """Get schedule level type (lighting/shutters)"""
+        return self.level_type
 
     def assign_schedule(self, device_ids: list, include_current: bool = True) -> bool:
         """
@@ -519,12 +556,12 @@ class _WiserLevelSchedule(_WiserSchedule):
         if not isinstance(device_ids, list):
             device_ids = [device_ids]
         
-        if device_ids and self.device_ids:
-                remaining_device_ids = [device_id for device_id in self.device_ids if device_id not in device_ids]
+        if device_ids and self.device_type_ids:
+                remaining_device_ids = [device_id for device_id in self.device_type_ids if device_id not in device_ids]
         self.assign_schedule(remaining_device_ids, False)
 
 
-    def _convert_wiser_to_yaml_day(self, day, day_schedule, replace_special_times: bool = False) -> list:
+    def _convert_wiser_to_yaml_day(self, day, day_schedule, replace_special_times: bool = False, generic_setpoint: bool = False) -> list:
         """
         Convert from wiser schedule format to format for yaml output.
         param daySchedule: json schedule for a day in wiser v2 format
@@ -539,7 +576,7 @@ class _WiserLevelSchedule(_WiserSchedule):
                             TEXT_TIME: (
                                     self._sunrises.get(day) if day_schedule[TEXT_TIME][i] == SPECIAL_TIMES.get("Sunrise") else self._sunsets.get(day)
                                 ),
-                            TEXT_LEVEL: day_schedule[TEXT_LEVEL][i],
+                            (TEXT_SETPOINT if generic_setpoint else TEXT_LEVEL): day_schedule[TEXT_LEVEL][i],
                         }
                     )
                 else:
@@ -548,7 +585,7 @@ class _WiserLevelSchedule(_WiserSchedule):
                             TEXT_TIME: (
                                     [time for time, name in SPECIAL_TIMES.items() if name == day_schedule[TEXT_TIME][i]][0]
                                 ),
-                            TEXT_LEVEL: day_schedule[TEXT_LEVEL][i],
+                            (TEXT_SETPOINT if generic_setpoint else TEXT_LEVEL): day_schedule[TEXT_LEVEL][i],
                         }
                     )
             else:
@@ -559,7 +596,7 @@ class _WiserLevelSchedule(_WiserSchedule):
                                 format(day_schedule[TEXT_TIME][i], "04d"), "%H%M"
                             )
                         ).strftime("%H:%M"),
-                        TEXT_LEVEL: day_schedule[TEXT_LEVEL][i],
+                        (TEXT_SETPOINT if generic_setpoint else TEXT_LEVEL): day_schedule[TEXT_LEVEL][i],
                     }
                 )
         #Sort list into time order
@@ -584,8 +621,8 @@ class _WiserLevelSchedule(_WiserSchedule):
                         else:
                             time = "0"
                     times.append(time)
-                if key.title() == TEXT_LEVEL:
-                    levels.append(value)
+                if key.title() in [TEXT_LEVEL, TEXT_SETPOINT]:
+                    levels.append(int(value))
         return {TEXT_TIME: times, TEXT_LEVEL: levels}
 
 
@@ -686,6 +723,7 @@ class _WiserScheduleCollection(object):
         param id: id of schedule
         return: _WiserSchedule object
         """
+        if schedule_type in [WiserScheduleTypeEnum.lighting, WiserScheduleTypeEnum.shutters]: schedule_type = WiserScheduleTypeEnum.level
         try:
             if schedule_type == WiserScheduleTypeEnum.level:
                 return [schedule for schedule in self.all if schedule._type == schedule_type.value and schedule.id == id][0]
