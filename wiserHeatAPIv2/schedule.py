@@ -31,6 +31,7 @@ class _WiserSchedule(object):
         self._sunrises = sunrises
         self._sunsets = sunsets
         self._assignments = []
+        self._device_ids = []
 
     def _validate_schedule_type(self, schedule_data: dict) -> bool:
         return True if schedule_data.get("Type", None) == self.schedule_type or schedule_data.get("SubType", None) == self.schedule_type  else False
@@ -496,18 +497,13 @@ class _WiserOnOffSchedule(_WiserSchedule):
 
 
 class _WiserLevelSchedule(_WiserSchedule):
-    """ Class for Wiser Level Schedule """
+    """ 
+        Class for Wiser Level Schedule
+        Lights and Shutters have 2 ids and need to use Light ID or Shutter ID for schedule control
+    """
     def __init__(self, wiser_rest_controller:_WiserRestController, schedule_type: str, schedule_data: dict, sunrises, sunsets):
         super().__init__(wiser_rest_controller, schedule_type, schedule_data, sunrises, sunsets)
-        self._device_type_ids = []
 
-    @property
-    def device_type_ids(self):
-        """
-        Get device type ids of devices schedule attached to.
-        Lights and Shutters have 2 ids and need to use Light ID or Shutter ID for schedule control
-        """
-        return self._device_type_ids
 
     @property
     def level_type(self) -> str:
@@ -533,7 +529,7 @@ class _WiserLevelSchedule(_WiserSchedule):
         if not isinstance(device_ids, list):
             device_ids = [device_ids]
         if include_current:
-            device_ids = device_ids + self.device_type_ids
+            device_ids = device_ids + self.assignment_ids
         
         type_data = {
                     "id": self.id,
@@ -556,8 +552,8 @@ class _WiserLevelSchedule(_WiserSchedule):
         if not isinstance(device_ids, list):
             device_ids = [device_ids]
         
-        if device_ids and self.device_type_ids:
-                remaining_device_ids = [device_id for device_id in self.device_type_ids if device_id not in device_ids]
+        if device_ids and self.assignment_ids:
+                remaining_device_ids = [device_id for device_id in self.assignment_ids if device_id not in device_ids]
         self.assign_schedule(remaining_device_ids, False)
 
 
@@ -739,7 +735,7 @@ class _WiserScheduleCollection(object):
 
     def get_by_device_id(self, device_id: int) -> list:
         try:
-            return [schedule for schedule in self._onoff_schedules + self._level_schedules if device_id in [schedule.device_ids]][0]
+            return [schedule for schedule in self._onoff_schedules + self._level_schedules if device_id in [schedule._device_ids]][0]
         except IndexError:
             return None
 
