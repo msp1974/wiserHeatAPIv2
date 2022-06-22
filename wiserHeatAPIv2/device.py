@@ -69,7 +69,7 @@ class _WiserDevice(object):
         return self._signal
         
 
-class _WiserElectricalDevice(_WiserDevice):
+class _WiserElectricalLevelDevice(_WiserDevice):
     """Class representing a wiser electrical device"""
     def __init__(self, data: dict, device_type_data: dict):
         self._device_type_data = device_type_data
