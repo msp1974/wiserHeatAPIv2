@@ -1,7 +1,7 @@
 name = "wiser-heat-api-v2"
 __all__ = ["wiserAPI","wiserDiscovery"]
 
-__VERSION__ = "0.0.32"
+__VERSION__ = "0.0.33"
 
 import logging
 _LOGGER = logging.getLogger(__name__)

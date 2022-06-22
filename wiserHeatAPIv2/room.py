@@ -45,7 +45,7 @@ class _WiserRoom(object):
 
         # Add device id to schedule
         if self._schedule:
-            self.schedule._room_ids.append(self.id)
+            self.schedule._assignments.append({"id": self.id, "name": self.name})
 
     def _effective_heating_mode(self, mode: str, temp: float) -> str:
         if mode.casefold() == TEXT_MANUAL.casefold() and temp == TEMP_OFF:

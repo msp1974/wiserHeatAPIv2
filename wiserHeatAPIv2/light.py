@@ -1,7 +1,7 @@
 from . import _LOGGER
 import enum
 
-from .device import _WiserElectricalDevice
+from .device import _WiserElectricalLevelDevice
 from .rest_controller import _WiserRestController
 from .schedule import _WiserSchedule
 
@@ -18,7 +18,7 @@ class WiserAwayActionEnum(enum.Enum):
     nochange = TEXT_NO_CHANGE
 
 
-class _WiserLight(_WiserElectricalDevice):
+class _WiserLight(_WiserElectricalLevelDevice):
     """Class representing a Wiser Light device"""
 
     def __init__(self, wiser_rest_controller:_WiserRestController, data: dict, device_type_data: dict, schedule: _WiserSchedule):
@@ -35,8 +35,8 @@ class _WiserLight(_WiserElectricalDevice):
 
         # Add device id to schedule
         if self._schedule:
+            self.schedule._assignments.append({"id": self.light_id, "name": self.name})
             self.schedule._device_ids.append(self.id)
-            self.schedule._device_type_ids.append(self.light_id)
 
     def _send_command(self, cmd: dict, device_level: bool = False):
         """
@@ -123,7 +123,7 @@ class _WiserLight(_WiserElectricalDevice):
 
     @property
     def light_id(self) -> int:
-        """Get id of light"""
+        """Get id of shutter"""
         return self._device_type_data.get("id", 0)
 
     @property
