@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.33
+# Drayton Wiser Hub API v2 v0.0.34
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -179,3 +179,6 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Fixed issue where battery voltage over 3v shows 0% level
 - Replaced device_ids/room_ids on schedules with assignments, assignment_ids, assignment_names
 - Added ws_schedule_data and set_schedule_from_ws_data to support webservice for Wiser Schedule Card in HA
+
+### 0.0.34
+- Fixed issue where create_schedule was passing wrong schedule type to hub

@@ -797,8 +797,11 @@ class _WiserScheduleCollection(object):
         type_data = {"Name": name}
         if schedule_type in [WiserScheduleTypeEnum.lighting, WiserScheduleTypeEnum.level]:
             type_data.update({"Type": 1})
+            schedule_type = WiserScheduleTypeEnum.level
+            
         if schedule_type == WiserScheduleTypeEnum.shutters:
             type_data.update({"Type": 2})
+            schedule_type = WiserScheduleTypeEnum.level
 
         schedule_data = {
             "Assignments": assignments,
