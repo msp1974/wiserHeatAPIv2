@@ -75,3 +75,13 @@ WISERLIGHT = "Light/{}"
 class WiserUnitsEnum(enum.Enum):
     imperial = "imperial"
     metric = "metric"
+
+DEFAULT_LEVEL_SCHEDULE = {
+    "Monday": {"Time":[],"Level":[]},
+    "Tuesday": {"Time":[],"Level":[]},
+    "Wednesday": {"Time":[],"Level":[]},
+    "Thursday": {"Time":[],"Level":[]},
+    "Friday": {"Time":[],"Level":[]},
+    "Saturday": {"Time":[],"Level":[]},
+    "Sunday": {"Time":[],"Level":[]}
+}
