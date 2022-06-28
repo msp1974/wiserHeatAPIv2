@@ -7,7 +7,7 @@ from datetime import datetime
 from ruamel.yaml import YAML
 
 from . import _LOGGER
-from .const import (SPECIAL_DAYS, SPECIAL_TIMES, TEMP_MINIMUM, TEMP_OFF, TEXT_DEGREESC,
+from .const import (DEFAULT_LEVEL_SCHEDULE, SPECIAL_DAYS, SPECIAL_TIMES, TEMP_MINIMUM, TEMP_OFF, TEXT_DEGREESC,
                     TEXT_HEATING, TEXT_LEVEL, TEXT_LIGHTING, TEXT_OFF, TEXT_ON, TEXT_ONOFF, TEXT_SETPOINT, TEXT_SHUTTERS, TEXT_STATE,
                     TEXT_TEMP, TEXT_TIME, TEXT_UNKNOWN, TEXT_WEEKDAYS,
                     TEXT_WEEKENDS, WEEKDAYS, WEEKENDS)
@@ -177,7 +177,7 @@ class _WiserSchedule(object):
     @property
     def ws_schedule_data(self) -> dict:
         """Get formatted schedule data for webservice support"""
-        s = self._remove_schedule_elements(self._convert_from_wiser_schedule(self._remove_schedule_elements(self._schedule_data.copy()), replace_special_times=True, generic_setpoint=True))
+        s = self._remove_schedule_elements(self._convert_from_wiser_schedule(self.schedule_data, replace_special_times=True, generic_setpoint=True))
         return {
             "Id": self.id,
             "Name": self.name,
@@ -514,6 +514,21 @@ class _WiserLevelSchedule(_WiserSchedule):
     def level_type_id(self) -> int:
         """Get the schedule level type id"""
         return (2 if self.level_type == WiserScheduleTypeEnum.shutters.value else 1)
+    
+    @property
+    def next(self):
+        """Get details of next schedule entry"""
+        if self._schedule_data.get("Next"):
+            return _WiserScheduleNext(self._type, self._schedule_data.get("Next", {"Day":"", "Time":0, "Level":0}))
+
+    @property
+    def schedule_data(self) -> str:
+        """Get json output of schedule data"""
+        """ Fix for issue of level scheudle can be empty"""
+        schedule_data = self._remove_schedule_elements(self._schedule_data.copy())
+        if schedule_data:
+            return schedule_data
+        return DEFAULT_LEVEL_SCHEDULE
 
     @property
     def schedule_type(self) -> str:
@@ -797,10 +812,12 @@ class _WiserScheduleCollection(object):
         type_data = {"Name": name}
         if schedule_type in [WiserScheduleTypeEnum.lighting, WiserScheduleTypeEnum.level]:
             type_data.update({"Type": 1})
+            type_data.update(DEFAULT_LEVEL_SCHEDULE)
             schedule_type = WiserScheduleTypeEnum.level
             
         if schedule_type == WiserScheduleTypeEnum.shutters:
             type_data.update({"Type": 2})
+            type_data.update(DEFAULT_LEVEL_SCHEDULE)
             schedule_type = WiserScheduleTypeEnum.level
 
         schedule_data = {
