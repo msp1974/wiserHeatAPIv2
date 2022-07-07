@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.36
+# Drayton Wiser Hub API v2 v0.0.37
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -190,3 +190,6 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 
 ### 0.0.36
 - Fix issue with special times format for level schedules (EU hubs only)
+
+### 0.0.37
+- Fix issue with schedule name property setter
