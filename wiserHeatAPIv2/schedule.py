@@ -161,7 +161,7 @@ class _WiserSchedule(object):
     @name.setter
     def name(self, name: str):
         """Set name of schedule"""
-        self._send_schedule_command("UPDATE", f'{"Name": {name}}', self.id)
+        self._send_schedule_command("UPDATE", {"Name": name}, self.id)
 
     @property
     def next(self):
