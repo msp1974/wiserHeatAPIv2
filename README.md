@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.35
+# Drayton Wiser Hub API v2 v0.0.36
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
 
@@ -187,3 +187,6 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 - Fixed issue whereby Level schedule can have no schedule data.  Return day data with empty slots
 - Fixed issue whereby Level schedule with no schedule data does not return schedule.next object
 - Ensure default empty schedule when creating Level schedule
+
+### 0.0.36
+- Fix issue with special times format for level schedules (EU hubs only)

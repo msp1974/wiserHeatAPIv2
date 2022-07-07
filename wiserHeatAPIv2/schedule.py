@@ -177,7 +177,7 @@ class _WiserSchedule(object):
     @property
     def ws_schedule_data(self) -> dict:
         """Get formatted schedule data for webservice support"""
-        s = self._remove_schedule_elements(self._convert_from_wiser_schedule(self.schedule_data, replace_special_times=True, generic_setpoint=True))
+        s = self._remove_schedule_elements(self._convert_from_wiser_schedule(self.schedule_data, generic_setpoint=True))
         return {
             "Id": self.id,
             "Name": self.name,
@@ -594,7 +594,7 @@ class _WiserLevelSchedule(_WiserSchedule):
                     schedule_set_points.append(
                         {
                             TEXT_TIME: (
-                                    [time for time, name in SPECIAL_TIMES.items() if name == day_schedule[TEXT_TIME][i]][0]
+                                    [name for name, time in SPECIAL_TIMES.items() if time == day_schedule[TEXT_TIME][i]][0]
                                 ),
                             (TEXT_SETPOINT if generic_setpoint else TEXT_LEVEL): day_schedule[TEXT_LEVEL][i],
                         }
