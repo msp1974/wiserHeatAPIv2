@@ -66,6 +66,12 @@ class WiserAPI(object):
         self._wiser_api_connection.secret = secret
         self._wiser_api_connection.units = units
 
+        # Hub Data
+        self._domain_data = {}
+        self._network_data = {}
+        self._schedule_data = {}
+        self._opentherm_data = {}
+
         # Data stores for exposed properties
         self._devices = None
         self._hotwater = None
@@ -94,46 +100,49 @@ class WiserAPI(object):
         self._wiser_rest_controller = _WiserRestController(self._wiser_api_connection)
 
         # Read data from hub
-        _domain_data = self._wiser_rest_controller._get_hub_data(WISERHUBDOMAIN)
-        _network_data = self._wiser_rest_controller._get_hub_data(WISERHUBNETWORK)
-        _schedule_data = self._wiser_rest_controller._get_hub_data(WISERHUBSCHEDULES)
-        _opentherm_data = self._wiser_rest_controller._get_hub_data(WISERHUBOPENTHERM, False)
+        self._domain_data = self._wiser_rest_controller._get_hub_data(WISERHUBDOMAIN)
+        self._network_data = self._wiser_rest_controller._get_hub_data(WISERHUBNETWORK)
+        self._schedule_data = self._wiser_rest_controller._get_hub_data(WISERHUBSCHEDULES)
+        self._opentherm_data = self._wiser_rest_controller._get_hub_data(WISERHUBOPENTHERM, False)
 
-        if _domain_data != {} and _network_data != {} and _schedule_data != {}:
+        # Set diagnostics property
+
+
+        if self._domain_data != {} and self._network_data != {} and self._schedule_data != {}:
 
             # System Object
-            _device_data = _domain_data.get("Device", [])
-            self._system = _WiserSystem(self._wiser_rest_controller, _domain_data, _network_data, _device_data, _opentherm_data)
+            _device_data = self._domain_data.get("Device", [])
+            self._system = _WiserSystem(self._wiser_rest_controller, self._domain_data, self._network_data, _device_data, self._opentherm_data)
 
             # Schedules Collection
-            self._schedules = _WiserScheduleCollection(self._wiser_rest_controller, _schedule_data, self._system.sunrise_times, self._system.sunset_times)
+            self._schedules = _WiserScheduleCollection(self._wiser_rest_controller, self._schedule_data, self._system.sunrise_times, self._system.sunset_times)
 
             # Devices Collection
-            self._devices = _WiserDeviceCollection(self._wiser_rest_controller, _domain_data, self._schedules )
+            self._devices = _WiserDeviceCollection(self._wiser_rest_controller, self._domain_data, self._schedules )
 
             # Rooms Collection
-            room_data = _domain_data.get("Room", [])
+            room_data = self._domain_data.get("Room", [])
             self._rooms = _WiserRoomCollection(self._wiser_rest_controller, room_data, self._schedules.get_by_type(WiserScheduleTypeEnum.heating), self._devices)
 
             # Hot Water
-            if _domain_data.get("HotWater"):
-                schedule = self._schedules.get_by_id(WiserScheduleTypeEnum.onoff, _domain_data.get("HotWater")[0].get("ScheduleId", 0))
+            if self._domain_data.get("HotWater"):
+                schedule = self._schedules.get_by_id(WiserScheduleTypeEnum.onoff, self._domain_data.get("HotWater")[0].get("ScheduleId", 0))
                 self._hotwater = _WiserHotwater(
                     self._wiser_rest_controller,
-                    _domain_data.get("HotWater", {})[0],
+                    self._domain_data.get("HotWater", {})[0],
                     schedule,
                 )
 
             # Heating Channels
-            if _domain_data.get("HeatingChannel"):
+            if self._domain_data.get("HeatingChannel"):
                 self._heating_channels = _WiserHeatingChannelCollection(
-                    _domain_data.get("HeatingChannel"),
+                    self._domain_data.get("HeatingChannel"),
                     self._rooms
                 )
 
             # Moments
-            if _domain_data.get("Moment"):
-                self._moments = _WiserMomentCollection(self._wiser_rest_controller, _domain_data.get("Moment"))
+            if self._domain_data.get("Moment"):
+                self._moments = _WiserMomentCollection(self._wiser_rest_controller, self._domain_data.get("Moment"))
 
             # If gets here with no exceptions then success and return true
             return True
@@ -189,6 +198,16 @@ class WiserAPI(object):
     @property
     def version(self):
         return __VERSION__
+
+    @property
+    def raw_hub_data(self):
+        return {
+            "Domain": self._domain_data,
+            "Network": self._network_data,
+            "Schedule": self._schedule_data,
+            "OpenTherm": self._opentherm_data
+        }
+
 
     def output_raw_hub_data(self, data_class: str, filename: str, file_path: str) -> bool:
         """Output raw hub data to json file"""
