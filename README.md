@@ -196,3 +196,6 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 
 ### 0.0.38
 - Add raw_hub_data property to return all read data from hub
+
+### 0.0.39
+- Fix for OnOff schedules not correctly handling midnight times/settings
