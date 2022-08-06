@@ -465,10 +465,10 @@ class _WiserOnOffSchedule(_WiserSchedule):
                 {
                     TEXT_TIME: (
                         datetime.strptime(
-                            format(abs(day_schedule[i]), "04d"), "%H%M"
+                            format(abs(day_schedule[i] if abs(day_schedule[i]) < 2400 else 0), "04d"), "%H%M"
                         )
                     ).strftime("%H:%M"),
-                    (TEXT_SETPOINT if generic_setpoint else TEXT_STATE): TEXT_ON if day_schedule[i] > 0 else TEXT_OFF,
+                    (TEXT_SETPOINT if generic_setpoint else TEXT_STATE): TEXT_ON if day_schedule[i] == abs(day_schedule[i]) else TEXT_OFF,
                 }
             )
         return sorted(schedule_set_points, key=lambda t: t['Time'])
@@ -485,10 +485,11 @@ class _WiserOnOffSchedule(_WiserSchedule):
             try:
                 if self._is_valid_time(entry.get("Time")):
                     time = int(str(entry.get("Time")).replace(":", ""))
+                    time = time if time != 0 else 2400
                 else:
                     time = 0
                 if entry.get("State", entry.get(TEXT_SETPOINT)).title() == TEXT_OFF:
-                    time = 0 - int(time)
+                    time = -abs(time) if time != 0 else -2400
             except Exception as ex:
                 _LOGGER.debug(ex)
                 time = 0
