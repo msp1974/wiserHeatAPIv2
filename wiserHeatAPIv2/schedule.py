@@ -2,7 +2,7 @@ from concurrent.futures.process import _threads_wakeups
 import enum
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ruamel.yaml import YAML
 
@@ -419,6 +419,19 @@ class _WiserOnOffSchedule(_WiserSchedule):
         """
         return self._device_type_ids
 
+    @property
+    def next_on(self):
+        """
+        Get date and time of next on event
+        """
+        
+
+    @property
+    def next_off(self):
+        """
+        Get date and time of next off event
+        """
+
     def assign_schedule(self, device_ids: list, include_current: bool = True) -> bool:
         """
         Assign schedule to devices
@@ -655,6 +668,23 @@ class _WiserScheduleNext:
         """Get the next entry time"""
         t = f'{self._data.get("Time", 0):04}'
         return datetime.strptime(t[:2] + ':' + t[-2:], '%H:%M').time()
+
+    @property
+    def datetime(self) -> datetime:
+        """Get the next entry date time"""
+        try:
+            next_schedule_day = (WEEKDAYS + WEEKENDS).index(self.day)
+            next_schedule_time = self.time
+            current_day = datetime.today().weekday()
+            current_time = datetime.now().time()
+            
+            # If next day or time on earlier weekday, add week to date
+            days_diff = next_schedule_day - current_day
+            days_diff = days_diff if days_diff > 0 or days_diff == 0 and next_schedule_time >= current_time  else days_diff + 7
+            next_date = datetime.today() + timedelta(days = days_diff)
+            return next_date.replace(hour=self.time.hour, minute=self.time.minute, second=0, microsecond=0)
+        except:
+            return None
 
     @property
     def setting(self) -> str:
