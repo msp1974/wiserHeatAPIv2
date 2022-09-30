@@ -89,6 +89,8 @@ class WiserAPI(object):
             self._wiser_api_connection.host is not None
             and self._wiser_api_connection.secret is not None
         ):
+            # Create an instance of the rest controller
+            self._wiser_rest_controller = _WiserRestController(self._wiser_api_connection)
             self.read_hub_data()
         else:
             raise WiserHubConnectionError("Missing or incomplete connection information")
@@ -96,8 +98,6 @@ class WiserAPI(object):
 
     def read_hub_data(self):
         """Read all data from hub and populate objects"""
-        # Create an instance of the rest controller
-        self._wiser_rest_controller = _WiserRestController(self._wiser_api_connection)
 
         # Read data from hub
         self._domain_data = self._wiser_rest_controller._get_hub_data(WISERHUBDOMAIN)
