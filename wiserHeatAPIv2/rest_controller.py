@@ -51,7 +51,7 @@ class _WiserRestController(object):
         retries = Retry(
             total=REST_RETRIES, 
             backoff_factor=REST_BACKOFF_FACTOR, 
-            status_forcelist=[429, 500, 502, 503, 504]
+            status_forcelist=[413, 429, 500, 502, 503, 504]
         )
         adapter = HTTPAdapter(max_retries=retries)
         self._requests_session = requests.Session()
@@ -60,6 +60,7 @@ class _WiserRestController(object):
             {
                 "SECRET": self._wiser_connection.secret,
                 "Content-Type": "application/json;charset=UTF-8",
+                "Connection": "close",
             }
         )
         logging.getLogger('urllib3.connectionpool').setLevel(logging.CRITICAL)
