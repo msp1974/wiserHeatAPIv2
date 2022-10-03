@@ -20,7 +20,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["ruamel.yaml==0.16.12", "zeroconf>=0.37.0", "requests>=2.26.0"],
+    install_requires=["ruamel.yaml==0.16.12", "zeroconf", "requests"],
     python_requires='>=3.9',
     entry_points = {
         'console_scripts': ['wiser = wiserHeatAPIv2.cli:main'],
