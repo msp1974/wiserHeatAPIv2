@@ -59,12 +59,10 @@ class _WiserRestController(object):
         self._requests_session.headers.update(
             {
                 "SECRET": self._wiser_connection.secret,
-                "Content-Type": "application/json;charset=UTF-8",
+                "Content-Type": "application/json",
                 "Connection": "close",
             }
         )
-        logging.getLogger('urllib3.connectionpool').setLevel(logging.CRITICAL)
-        logging.getLogger('urllib3.util.retry').setLevel(logging.CRITICAL)
 
     def _do_hub_action(self, action: WiserRestActionEnum, url: str, data: dict = None, raise_for_endpoint_error: bool = True):
         """
@@ -73,6 +71,7 @@ class _WiserRestController(object):
         param patchData: json object containing command and values to set
         return: boolean
         """
+
         try:
             if action == WiserRestActionEnum.GET:
                 response = self._requests_session.get(
@@ -125,6 +124,10 @@ class _WiserRestController(object):
             raise WiserHubConnectionError(
                 f"Connection error trying to communicate with Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
             )
+
+        finally:
+            # Print out number of connections in pool
+            _LOGGER.debug(f"Hub Request Pool connections: {self._requests_session.get_adapter(url).poolmanager.pools}")
    
     def _process_nok_response(self, response, raise_for_endpoint_error: bool = True):
         if response.status_code == 401:
