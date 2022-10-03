@@ -125,9 +125,8 @@ class _WiserRestController(object):
                 f"Connection error trying to communicate with Wiser Hub {self._wiser_connection.host}.  Error is {ex}"
             )
 
-        finally:
-            # Print out number of connections in pool
-            _LOGGER.debug(f"Hub Request Pool connections: {self._requests_session.get_adapter(url).poolmanager.pools}")
+    def get_connection_pools(self):
+        return self._requests_session.get_adapter(WISERHUBDOMAIN.format(self._wiser_connection.host)).poolmanager.pools
    
     def _process_nok_response(self, response, raise_for_endpoint_error: bool = True):
         if response.status_code == 401:

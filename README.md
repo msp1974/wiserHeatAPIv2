@@ -247,5 +247,5 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 ### 0.0.42
 
 * Add connection close header
-* Add debug connection pool logging
+* Add connection pools function
 * Remove UTF8 from content-type string
