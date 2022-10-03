@@ -1,4 +1,4 @@
-# Drayton Wiser Hub API v2 v0.0.41
+# Drayton Wiser Hub API v2 v0.0.42
 
 
 This repository contains a simple API which queries the Drayton Wiser Heating sysystem used in the UK.
@@ -243,3 +243,9 @@ Documentation available in [info.md](https://github.com/msp1974/wiserHeatAPIv2/b
 ### 0.0.41
 
 * Prevent recreation of http session on each hub update
+
+### 0.0.42
+
+* Add connection close header
+* Add debug connection pool logging
+* Remove UTF8 from content-type string
